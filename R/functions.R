@@ -1,0 +1,1002 @@
+
+#' @import JuliaConnectoR
+#' @import ggplot2
+#' @import gridExtra
+#' @importFrom stats median optim runif
+#' @importFrom utils stack write.csv
+#'
+NULL
+
+
+#_______________________________________________________________________________
+
+#' @title julia_setup
+#'
+#' @description Checks installation of Julia and install the needed packages. May take little time to run.Only run the first time you use Jflimo.
+#'
+#' @return Boolean. True if correct setup, False else.
+#'
+
+#' @export
+
+julia_setup <- function(){
+  requireNamespace("JuliaConnectoR")
+  if (juliaSetupOk()){
+    juliaEval('
+       import Pkg
+       Pkg.add(url = "https://git.metabarcoding.org/lecasofts/flimo/jflimo.git")
+       Pkg.add("CSV")
+       Pkg.add("DataFrames")
+       Pkg.add("Distributions")
+       Pkg.add("ForwardDiff")
+       Pkg.add("Optim")
+       Pkg.add("Random")
+              ')
+    return(TRUE)
+  }
+  else {
+    warning("FAILURE : Uncomplete Julia setup - See JuliaConnectoR's documentation")
+    return(FALSE)
+    }
+}
+
+
+#_______________________________________________________________________________
+
+#' @title julia_load
+#'
+#' @description Load needed Julia packages. Run to use Jflimo.
+#'
+#' @return Boolean. True if load is done correctly
+#'
+
+#' @export
+
+julia_load <- function(){
+  tryCatch({
+    juliaEval('
+          using Jflimo
+          using CSV
+          using DataFrames
+          using Distributions
+          using ForwardDiff
+          using Optim
+          using Random
+            ')
+    return(TRUE)
+  },
+  error=function(cond) {
+    warning("FAILURE : You should run flimo.julia_setup() once to complete installation and reload flimo.")
+    return(FALSE)
+  }
+  )
+}
+
+#_______________________________________________________________________________
+
+#' @title flimobjective
+#'
+#' @description Computes the summary statistics between simulations w.r.t. Theta and data. This function is to be minimized by flimoptim.
+#'
+#' @param Theta 1D array. parameters for the simulations.
+#' @param quantiles 2D array containing values following U(0,1).
+#' Row number = number of simulations.
+#' Column number = number of random variables to draw in one simulation.
+#' @param data 1D array containing the observations.
+#' @param sumstats Function computing the distance between simulations and data of form sumstats(simulations, data) where simulations : 2D array and data : 1D array.
+#' ncol(simulations) = length(data) mandatory.
+#' @param simulatorQ Function of type simulatorQ(Theta, quantiles)
+#' where Theta is the parameter set for the simulations and quantiles are drawn in U(0,1).
+#' See README for details.
+#'
+#' @return Numeric value. Distance between summary statistics of data and simulations w.r.t. Theta.
+#'
+#' @examples
+#'
+#'quantiles <- matrix(runif(50), nrow = 10)
+#'
+#'data <- rep(100, 5)
+#'
+#'sumstats <- function(simulations, data){
+#' mean_simu <- mean(rowMeans(simulations))
+#' mean_data <- mean(data)
+#' (mean_simu-mean_data)^2
+#'}
+#'
+#'simulatorQ <- function(Theta, quantiles){
+#' qpois(quantiles, lambda = Theta)
+#'}
+#'
+#'flimobjective(100, quantiles, data, sumstats, simulatorQ)
+#'
+#' @export
+
+flimobjective <- function(Theta, quantiles, data, sumstats, simulatorQ){
+  simulations <- t(apply(quantiles, 1,
+                         simulatorQ, Theta = Theta))
+  #simulations <- apply(quantiles, 1:2, simulatorQ, Theta = Theta)
+  sumstats(simulations, data)
+}
+
+
+#_______________________________________________________________________________
+
+#' @title flimoptim
+#'
+#' @description Computes several parameter inferences with R optimizer or Julia optimizer in a full Julia mode.
+#' In R mode (default) : L-BFGS-B optimization.
+#' In Julia mode : either IPNewton with or without Automatic Differentation or Brent optimization.
+#'
+#' @param data 1D array containing the observations.
+#' @param ndraw Integer. Number of random variables to draw for one simulation of the model.
+#' @param sumstats Summary statistics to measure distance between simulations and data.
+#' In R mode : R function of type sumstats(simulations, data) where simulations : 2D array and data : 1D array.
+#' ncol(simulations) = length(data) mandatory.
+#' In Julia mode : a string containing the script of the Julia function sumstats(simulations, data).
+#' The name "sumstats" is mandatory.
+#' @param simulatorQ Simulator of the stochastic process with fixed quantiles (see Readme).
+#  Either an R function of type simulatorQ(Theta, quantiles) (in mode "R")
+#' or a string (in mode "Julia") containing the script of the Julia function simulatorQ(Theta, quantiles).
+#' In Julia mode, the name "simulatorQ" is mandatory.
+#' Theta is the parameter set for the simulations and quantiles are drawn in U(0,1).
+#' @param obj Objective function to minimize. Default : is directly computed from sumstats and simulatorQ.
+#' Either an R function of type objective(Theta, quantiles) (in mode "R")
+#' or a string (in mode "Julia") containing the script of the Julia function julia_obj(Theta, quantiles).
+#' Warning : could be tricky if mode = "Julia" to call data.
+#' In Julia mode, the name "julia_obj" is mandatory.
+#' @param nsim Integer. Number of simulations to run for each step of the optimisation algorithm.
+#' Computation time grows linearly with this number. Default to 10.
+#' @param ninfer Integer. Number of independent inferences to run. Default to 1.
+#' @param lower 1D array. Lower bounds for parameters. Same length as upper.
+#' @param upper 1D array. Upper bounds for parameters. Same length as lower.
+#' @param Theta0 1D array. Initial values of the parameters. Default : mean(lower, upper).
+#' @param randomTheta0 Boolean. If True, Theta0 is randomly drawn between lower and upper bounds.
+#' @param mode String. "R" (default) or "Julia". See Readme.
+#' @param AD Boolean. Only in Julia mode, uses Automatic Differentiation with IPNewton method. Default to true.
+#' @param method String. In Julia mode, allows to choose the optimization method : "Brent", "IPNewton". Default : IPNewton.
+#' @param maxit Integer. Max number of iterations during optimization. Default to 1000.
+#' @param time_lim Float. Time limit in second for each inference. Default to no limit. Not available for R mode and Brent method in Julia mode.
+#' @param factr Float. In R-mode : control parameter for L-BFGS-B method in stats::optim. Default to 1e7.
+#' @param pgtol Float. In R-mode : control parameter for L-BFGS-B method in stats::optim. Default to 0.
+#' @param xtol Float. In Julia mode with IPNewton method : xtol option in Optim.Options. Default to 0.
+#' @param ftol Float. In Julia mode with IPNewton method : ftol option in Optim.Options. Default to 0.
+#' @param gtol Float. In Julia mode with IPNewton method : gtol option in Optim.Options. Default to 1e-8.
+#' @param reltol Float. In Julia mode with Brent method : reltol of Optim.optimize. Default is sqrt(.Machine$double.eps), about 1e-8.
+#' @param abstol Float. In Julia mode with Brent method : abstol of Optim.optimize. Default is .Machine$double.eps, about 1e-16.
+#' @param show_trace Boolean. If true, shows standard trace. Default to false.
+#' @param store_trace Boolean. If true, stores standard trace as an array of strings. Default to false. Not available for R mode.
+#' @param store_quantiles Boolean. If true, stores every quantiles used for inference, to reproduce the results. Default to false.
+#' @param par_names vector of names for parameters. Default is "par1", ..., "parn".
+#' @param load_julia Boolean. If true, run julia_load. It can take few seconds. Default to False.
+#'
+#' @return Object of class flimo_result (list) (converted from Julia object in Julia mode) containing every information about convergence results.
+#'
+#' @examples
+#'data <- rep(100, 5)
+#'
+#'sumstats <- function(simulations, data){
+#' mean_simu <- mean(rowMeans(simulations))
+#' mean_data <- mean(data)
+#' (mean_simu-mean_data)^2
+#'}
+#'
+#'simulatorQ <- function(Theta, quantiles){
+#' qpois(quantiles, lambda = Theta)
+#'}
+#'
+#' flimoptim(data, 5, sumstats, simulatorQ,
+#' nsim = 10,
+#' lower = 50,
+#' upper = 150,
+#' method = "Brent")
+#'
+#' @export
+
+flimoptim <- function(data, ndraw, sumstats, simulatorQ,
+                   obj = NULL,
+                   nsim = 10,
+                   ninfer = 1,
+                   lower = 0,
+                   upper = 1,
+                   Theta0 = (lower+upper)/2,
+                   randomTheta0 = FALSE,
+                   mode = c("R", "Julia"),
+                   AD = TRUE,
+                   method = "",
+                   maxit = 1e3,
+                   time_lim = NaN,
+                   factr = 1e7,
+                   pgtol = 0,
+                   xtol = 0,
+                   ftol = 0,
+                   gtol = 1e-8,
+                   reltol = sqrt(.Machine$double.eps),
+                   abstol = .Machine$double.eps,
+                   show_trace = FALSE,
+                   store_trace = FALSE,
+                   store_quantiles = FALSE,
+                   par_names = NULL,
+                   load_julia = FALSE){
+  if (length(mode) > 1){
+    mode = mode[1] #default is R
+  }
+  if (mode == "Julia"){
+      flimoptim_Julia(data, ndraw, sumstats, simulatorQ,
+                      julia_obj = obj,
+                      nsim = nsim,
+                      ninfer = ninfer,
+                      lower = lower,
+                      upper = upper,
+                      Theta0 = Theta0,
+                      randomTheta0 = randomTheta0,
+                      AD = AD,
+                      method = method,
+                      maxit = maxit,
+                      time_lim = time_lim,
+                      xtol = xtol,
+                      ftol = ftol,
+                      gtol = gtol,
+                      reltol = reltol,
+                      abstol = abstol,
+                      show_trace = show_trace,
+                      store_trace = store_trace,
+                      store_quantiles = store_quantiles,
+                      par_names = par_names,
+                      load_julia = load_julia)
+  }
+  else {
+    if (mode != "R"){
+      message("Default mode : full R optimisation")
+    }
+    flimoptim_R(data, ndraw, sumstats, simulatorQ,
+                  obj = obj,
+                  nsim = nsim,
+                  ninfer = ninfer,
+                  lower = lower,
+                  upper = upper,
+                  Theta0 = Theta0,
+                  randomTheta0 = randomTheta0,
+                  maxit = maxit,
+                  factr = factr,
+                  pgtol = pgtol,
+                  show_trace = show_trace,
+                  store_quantiles = store_quantiles,
+                  par_names = par_names)
+  }
+}
+
+#_______________________________________________________________________________
+
+#' @title flimoptim_R
+#'
+#' @description Computes several parameter inferences with R optimizer (method L-BFGS-B).
+#'
+#' @param data 1D array containing the observations.
+#' @param ndraw Integer. Number of random variables to draw for one simulation of the model.
+#' @param sumstats Summary statistics to measure distance between simulations and data.
+#' R function of type sumstats(simulations, data) where simulations : 2D array and data : 1D array.
+#' ncol(simulations) = length(data) mandatory.
+#' @param simulatorQ Simulator of the stochastic process with fixed quantiles (see Readme).
+#  R function of type simulatorQ(Theta, quantiles)
+#' Theta is the parameter set for the simulations and quantiles are drawn in U(0,1).
+#' @param obj Objective function to minimize. Default : is directly computed from sumstats and simulatorQ.
+#' R function of type objective(Theta, quantiles)
+#' @param nsim Integer. Number of simulations to run for each step of the optimisation algorithm.
+#' Computation time grows linearly with this number. Default to 10.
+#' @param ninfer Integer. Number of independent inferences to run. Default to 1.
+#' @param lower 1D array. Lower bounds for parameters. Same length as upper.
+#' @param upper 1D array. Upper bounds for parameters. Same length as lower.
+#' @param Theta0 1D array. Initial values of the parameters. Default : mean(lower, upper).
+#' @param randomTheta0 Boolean. If True, Theta0 is randomly drawn between lower and upper bounds.
+#' @param maxit Integer. Max number of iterations during optimization. Default to 1000.
+#' @param factr Float. Control parameter for L-BFGS-B method in stats::optim. Default to 1e7.
+#' @param pgtol Float. Control parameter for L-BFGS-B method in stats::optim. Default to 0.
+#' @param show_trace Boolean. If true, shows standard trace. Default to false.
+#' @param store_quantiles Boolean. If true, stores every quantiles used for inference, to reproduce the results. Default to false.
+#' @param par_names vector of names for parameters. Default is "par1", ..., "parn".
+#'
+#' @return Object of class flimo_result (list) containing every information about convergence results.
+#'
+
+flimoptim_R <- function(data, ndraw, sumstats, simulatorQ,
+                          obj = NULL,
+                          nsim = 10,
+                          ninfer = 1,
+                          lower = 0,
+                          upper = 1,
+                          Theta0 = (lower+upper)/2,
+                          randomTheta0 = FALSE,
+                          maxit = 1e3,
+                          factr = 1e7,
+                          pgtol = 0,
+                          show_trace = FALSE,
+                          store_quantiles = FALSE,
+                          par_names = NULL){
+
+  minimizer <- matrix(rep(NA, ninfer*length(lower)), nrow = ninfer)
+  if (is.null(par_names)) colnames(minimizer) <- paste0("par", 1:length(lower))
+  else colnames(minimizer) <- par_names
+  minimum <- rep(NA, ninfer)
+  f_calls <- rep(NA, ninfer)
+  g_calls <- rep(NA, ninfer)
+  initial_x <- matrix(rep(NA, ninfer*length(lower)), nrow = ninfer)
+  converged <- rep(NA, ninfer)
+  message <- rep(NA, ninfer)
+  if (store_quantiles){
+    all_quantiles <- array(rep(NA, ninfer*nsim*ndraw), dim=c(ninfer, nsim, ndraw))
+  }
+  time_run <- rep(NA, ninfer)
+
+  for (infer in 1:ninfer){
+    quantiles <- matrix(runif(ndraw*nsim), nrow = nsim)
+    if (is.null(obj)){
+      intern_obj <- function(Theta){
+        return(flimobjective(Theta, quantiles, data, sumstats, simulatorQ))
+      }
+    }
+    else {
+      intern_obj <- function(Theta){
+        obj(Theta, quantiles)
+      }
+    }
+    if (randomTheta0){
+      Theta0 = runif(length(lower))*(upper-lower)+lower
+    }
+
+    start_time <- Sys.time()
+    opt <- stats::optim(par = Theta0, fn = intern_obj,
+                 method ="L-BFGS-B",
+                 lower = lower, upper = upper,
+                 control = list(trace = show_trace,
+                                maxit = maxit,
+                                factr = factr,
+                                pgtol = pgtol))
+    end_time <- Sys.time()
+
+    time_run[infer] <- end_time - start_time
+
+    initial_x[infer,] <- Theta0
+    minimizer[infer,] <- opt$par
+    minimum[infer] <- opt$value
+    converged[infer] <- opt$convergence == 0
+    f_calls[infer] <- opt$counts[1]
+    g_calls[infer] <- opt$counts[2]
+    message[infer] <- opt$message
+    if (store_quantiles){
+      all_quantiles[infer,,] <- quantiles
+    }
+
+  }
+  optim_result <- NULL
+  optim_result$mode <- "R"
+  optim_result$method <- "L-BFGS-B"
+  optim_result$AD <- F
+  optim_result$minimizer <- minimizer
+  optim_result$minimum <- minimum
+  optim_result$converged <- converged
+  optim_result$initial_x <- initial_x
+  optim_result$f_calls <- f_calls
+  optim_result$g_calls <- g_calls
+  optim_result$message <- message
+  if (store_quantiles){
+    optim_result$quantiles <- all_quantiles
+  }
+  optim_result$time_run <- time_run
+
+  class(optim_result) <- "flimo_result"
+
+  optim_result
+}
+
+
+
+#_______________________________________________________________________________
+
+#' @title flimoptim_Julia
+#'
+#' @description Computes several parameter inferences with Julia optimizer and either IPNewton with or without Automatic Differentation or Brent method.
+#'
+#' @param data 1D array containing the observations.
+#' @param ndraw Integer. Number of random variables to draw for one simulation of the model.
+#' @param sumstats Summary statistics to measure distance between simulations and data.
+#' String containing the script of the Julia function sumstats(simulations, data).
+#' The name "sumstats" is mandatory.
+#' @param simulatorQ Simulator of the stochastic process with fixed quantiles (see Readme).
+#  String containing the script of the Julia function simulatorQ(Theta, quantiles).
+#' The name "simulatorQ" is mandatory.
+#' Theta is the parameter set for the simulations and quantiles are drawn in U(0,1).
+#' @param julia_obj Objective function to minimize. Default : is directly computed from sumstats and simulatorQ.
+#' String containing the script of the Julia function julia_obj(Theta, quantiles).
+#' Warning : can be tricky to call data.
+#' The name "julia_obj" is mandatory.
+#' @param nsim Integer. Number of simulations to run for each step of the optimisation algorithm.
+#' Computation time grows linearly with this number. Default to 10.
+#' @param ninfer Integer. Number of independent inferences to run. Default to 1.
+#' @param lower 1D array. Lower bounds for parameters. Same length as upper.
+#' @param upper 1D array. Upper bounds for parameters. Same length as lower.
+#' @param Theta0 1D array. Initial values of the parameters. Default : mean(lower, upper).
+#' @param randomTheta0 Boolean. If True, Theta0 is randomly drawn between lower and upper bounds.
+#' @param AD Boolean. Only in Julia mod, uses Automatic Differentiation with IPNewton method. Default to true.
+#' @param method String. Allows to choose the optimization method : "Brent", "IPNewton". Default : IPNewton.
+#' @param maxit Integer. Max number of iterations during optimization. Default to 1000.
+#' @param time_lim Float. Time limit in second for each inference. Default to no limit. Not available for Brent method.
+#' @param xtol Float. With IPNewton method : xtol option in Optim.Options. Default to 0.
+#' @param ftol Float. With IPNewton method : ftol option in Optim.Options. Default to 0.
+#' @param gtol Float. With IPNewton method : gtol option in Optim.Options. Default to 1e-8.
+#' @param reltol Float. With Brent method : reltol of Optim.optimize. Default is sqrt(.Machine$double.eps), about 1e-8.
+#' @param abstol Float. With Brent method : abstol of Optim.optimize. Default is .Machine$double.eps, about 1e-16.
+#' @param show_trace Boolean. If true, shows standard trace. Default to false.
+#' @param store_trace Boolean. If true, stores standard trace as an array of strings. Default to false. Not available for R mod.
+#' @param store_quantiles Boolean. If true, stores every quantiles used for inference, to reproduce the results. Default to false.
+#' @param par_names vector of names for parameters. Default is "par1", ..., "parn".
+#' @param load_julia Boolean. If true, run julia_load. It can take few seconds. Default to False.
+#'
+#' @return Object of class flimo_result (list) converted from Julia object containing every information about convergence results.
+#'
+
+
+
+flimoptim_Julia <- function(data, ndraw, sumstats, simulatorQ,
+                         julia_obj = NULL,
+                         nsim = 10,
+                         ninfer = 1,
+                         lower = 0,
+                         upper = 1,
+                         Theta0 = (lower+upper)/2,
+                         randomTheta0 = FALSE,
+                         AD = TRUE,
+                         method = "",
+                         maxit = 1e3,
+                         time_lim = NULL,
+                         xtol = 0,
+                         ftol = 0,
+                         gtol = 1e-8,
+                         reltol = sqrt(.Machine$double.eps),
+                         abstol = .Machine$double.eps,
+                         show_trace = FALSE,
+                         store_trace = FALSE,
+                         store_quantiles = FALSE,
+                         par_names = NULL,
+                         load_julia = FALSE){
+  if (load_julia){
+    julia_load()
+  }
+  if (!is.null(data)){
+    file_data <- tempfile(pattern = "data_flimoptim", fileext = ".csv")
+    write.csv(as.matrix(data), file_data, row.names = FALSE)
+    juliaEval(paste0('julia_data = CSV.read("',file_data,'", DataFrame)[:,1]\n',
+                     'julia_data = convert(Array{Float64,1}, julia_data)'))
+    unlink(file_data)
+  }
+  else{
+    juliaEval('julia_data = nothing')
+  }
+
+  juliaEval(paste0('julia_ndraw = ',ndraw,
+                   '\njulia_nsim = ',nsim,
+                   '\njulia_ninfer = ',ninfer,
+                   '\njulia_method = "',method,'"',
+                   '\njulia_maxit = ',maxit,
+                   '\njulia_Theta0 = ',"[",paste(Theta0, collapse = ","),"]",
+                   '\njulia_lower = ',"[",paste(lower, collapse = ","),"]",
+                   '\njulia_upper = ',"[",paste(upper, collapse = ","),"]",
+                   '\njulia_xtol = ',xtol,
+                   '\njulia_ftol = ',ftol,
+                   '\njulia_gtol = ',gtol,
+                   '\njulia_reltol = ',reltol,
+                   '\njulia_abstol = ',abstol))
+
+  if (is.null(time_lim)){juliaEval('julia_time_lim = NaN')}
+  else {juliaEval(paste0('julia_time_lim = ',time_lim))}
+
+  if (AD){juliaEval('julia_AD = true')}
+  else {juliaEval('julia_AD = false')}
+
+  if (randomTheta0){juliaEval('julia_randomTheta0 = true')}
+  else {juliaEval('julia_randomTheta0 = false')}
+
+  if (show_trace){juliaEval('julia_show_trace = true')}
+  else {juliaEval('julia_show_trace = false')}
+
+  if (store_trace){juliaEval('julia_store_trace = true')}
+  else {juliaEval('julia_store_trace = false')}
+
+  if (store_quantiles){juliaEval('julia_store_quantiles = true')}
+  else {juliaEval('julia_store_quantiles = false')}
+
+  if (is.null(julia_obj)){
+    juliaEval(paste0('julia_obj = nothing','\n', sumstats, '\n', simulatorQ))
+  }
+  else {
+    juliaEval(paste0(julia_obj, '\n', 'sumstats = nothing\nsimulatorQ = nothing'))
+  }
+
+  optim_result <- juliaGet(juliaEval("
+  julia_xtol = convert(Float64, julia_xtol)
+  julia_ftol = convert(Float64, julia_ftol)
+  julia_gtol = convert(Float64, julia_gtol)
+  julia_reltol = convert(Float64, julia_reltol)
+  julia_abstol = convert(Float64, julia_abstol)
+  julia_Theta0 = convert(Array{Float64,1}, julia_Theta0)
+  julia_lower = convert(Array{Float64,1}, julia_lower)
+  julia_upper = convert(Array{Float64,1}, julia_upper)
+
+  opt = Jflimo.flimoptim(julia_data, julia_ndraw, sumstats, simulatorQ,
+                   obj = julia_obj,
+                   nsim = julia_nsim,
+                   ninfer = julia_ninfer,
+                   lower = julia_lower,
+                   upper = julia_upper,
+                   Theta0 = julia_Theta0,
+                   randomTheta0 = julia_randomTheta0,
+                   AD = julia_AD,
+                   method = julia_method,
+                   maxit = julia_maxit,
+                   xtol = julia_xtol,
+                   ftol = julia_ftol,
+                   gtol = julia_gtol,
+                   reltol = julia_reltol,
+                   abstol = julia_abstol,
+                   time_lim = julia_time_lim,
+                   show_trace = julia_show_trace,
+                   store_trace = julia_store_trace,
+                   store_quantiles = julia_store_quantiles)"))
+  class(optim_result) <- "flimo_result"
+  optim_result$mode <- "Julia"
+  optim_result$AD <- AD
+  if (is.null(par_names)) colnames(optim_result$minimizer) <- paste0("par", 1:length(lower))
+  else colnames(optim_result$minimizer) <- par_names
+  names(optim_result)[names(optim_result) == "iteration_converged"] <- "iteration_limit_reached"
+
+  optim_result
+}
+
+#_______________________________________________________________________________
+
+#' @title print.flimo_result
+#'
+#' @description Prints most important information about inference results.
+#'
+#' @param x Object of class flimo_result from any mod/method algorithm of the flimo package.
+#' @param ... optional args for generic method
+#'
+#' @return String containing most important information about argument of class flimo_result.
+#'
+#' @export
+#'
+
+print.flimo_result <- function(x, ...){
+  value <- 'Optimisation Result\n'
+  value <- paste0(value, "Mode : ", x$mod,"\n")
+  if (length(as.character(x$method)) == 1){
+    value <- paste0(value, "method : ", as.character(x$method),"\n")
+  }
+  else{
+    value <- paste0(value, "method : ", attr(x$method,"JLTYPE"),"\n")
+  }
+  value <- paste0(value, "Number of inferences : ", length(x$minimum),"\n")
+  value <- paste0(value, "Convergence : ", length(which(x$converged)),"/",length(x$minimum),"\n")
+  value <- paste0(value,"Mean of minimizer :\n")
+  value <- paste0(value, paste(colMeans(x$minimizer), collapse = "    "),"\n")
+  value <- paste0(value, "Best minimizer :\n")
+  value <- paste0(value, paste(x$minimizer[which(x$minimum == min(x$minimum))[1],], collapse = "    "))
+  value <- paste0(value, "\nReached minima : from ", min(x$minimum), " to ", max(x$minimum))
+  value <- paste0(value, "\nMedian time by inference ", median(x$time_run))
+  cat(value)
+  value
+}
+
+#' @title summary.flimo_result
+#'
+#' @description Most important information about inference results.
+#'
+#' @param object Object of class flimo_result from any mode/method algorithm of the Jflimo package.
+#' @param ... optional args for generic method summary
+#'
+#' @return List containing most important information about argument of class flimo_result.
+
+#' @export
+#'
+
+summary.flimo_result <- function(object, ...){
+  value <- list()
+  value$Mode <- object$mode
+
+  if (length(as.character(object$method)) == 1){
+    value$method <- as.character(object$method)
+  }
+  else{
+    value$method <- attr(object$method,"JLTYPE")
+  }
+  value$number_inferences <- length(object$minimum)
+
+  if (!is.null(attr(object$method,"JLTYPE"))){
+    value$number_converged <- length(which(object$converged))
+  }
+  else {
+    value$number_converged <- length(which(object$converged))
+  }
+  value$minimizer <- summary(object$minimizer)
+  value$minimum <- summary(object$minimum)
+  value$median_time_inference <- median(object$time_run)
+  value
+}
+
+#_______________________________________________________________________________
+
+#' @title check_simulator
+#'
+#' @description Run simulations to catch random variations.
+#' Warning : does not check it formaly.
+#' Warning : does not check if quantiles are used several times.
+#'
+#' @param simulatorQ Function of type simulatorQ(Theta, quantiles)
+#' where Theta is the parameter set for the simulations and quantiles are drawn in U(0,1).
+#' @param ndraw Integer. Number of random variables to draw for one simulation of the model.
+#' @param Theta_lower 1D numeric array. Lower bounds of Theta parameters.
+#' @param Theta_upper 1D numeric array. Upper bounds of Theta parameters.
+#' @param ntheta Integer. Number of Theta parameters to test.
+#' @param nruns Integer. For each Theta, number of simulations to run.
+#'
+#' @return Boolean. True if no random effect was detected, False else.
+#'
+#' @examples
+#' simulatorQ <- function(Theta, quantiles){
+#' qpois(quantiles, lambda = Theta)
+#'}
+#'check_simulator(simulatorQ, 5, Theta_lower = 50, Theta_upper = 150)
+#'
+#' @export
+#'
+
+check_simulator <- function(simulatorQ, ndraw, Theta_lower = 0, Theta_upper = 1,
+                            ntheta = 5, nruns = 3){
+
+  if (length(Theta_lower) != length(Theta_upper)){
+    warning("Warning : no correct dimension")
+    stop()
+  }
+  if (nruns <= 1){
+    message("check_simulator is useless with nruns <= 1. nruns set to 2.")
+    nruns = 2
+  }
+  for (i in 1:ntheta){
+    Theta <- runif(length(Theta_lower))*(Theta_upper-Theta_lower)+Theta_lower
+    quantiles_1sim <- runif(ndraw)
+    quantiles <- matrix(rep(quantiles_1sim, nruns), nrow = nruns, byrow = TRUE)
+    simulations <- tryCatch({
+      matrix(simulatorQ(Theta, quantiles), nrow = nruns)
+    }, error = function(e){
+      message("This simulator is not conceived to work with quantiles")
+      return(FALSE)
+    })
+    tryCatch({if (!all(apply(simulations, 2, function(x) length(unique(x)) == 1))){
+      return(FALSE)
+    }},error = function(e){
+      return(FALSE)
+    })
+  }
+  TRUE
+}
+
+#_______________________________________________________________________________
+
+#' @title plot.flimo_result
+#'
+#' @description Shows the plots for most important inference results. Default only shows normalized boxplots for each infered parameter.
+#'
+#' @param x Object of class flimo_result.
+#' @param y unused generic argument.
+#' @param ... optional args for generic method
+#' @param bins Integer. Number of bins if hist is True.
+#' @param hist Boolean. If True, plots the histogram of each infered parameter. Default to false.
+#' @param par_minimum Boolean. If True, plots each infered parameter by reached minimum. Default to false.
+#' @param pairwise_par Boolean. If True, plots each pairs of infered parameters. Default to false.
+#' @param boxplot Boolean. If True, plots the boxplots of each infered parameter scaled by their mean. Default to true.
+#' @param par_names Vector of names for parameters. Default is "par1", ..., "parn".
+#'
+#' @return Nothing. Prints the asked ggplot objects.
+#'
+#' @export
+
+
+plot.flimo_result <- function(x, y, ...,
+                              hist = FALSE,
+                              bins = 1+as.integer(nrow(x$minimizer)^(1/3)),
+                              par_minimum = FALSE,
+                              pairwise_par = FALSE,
+                              boxplot = TRUE,
+                              par_names = NULL){
+
+  ind <- NULL #to remove R CHECK NOTE
+  values <- NULL #to remove R CHECK NOTE
+  npar <- ncol(x$minimizer)
+
+  for (par in 1:npar){
+    if (hist){ #Histogram for each infered parameter
+      print(ggplot2::ggplot()+
+              geom_histogram(aes(x$minimizer[,par]), bins = bins)+
+              labs(x = paste0("parameter ", par))+
+              ggtitle(paste0("Histogram of infered parameter ", par)))
+    }
+
+    if (par_minimum){#Plot infered par = f(minimum)
+      print(ggplot2::ggplot()+
+              geom_point(aes(x$minimizer[,par], x$minimum))+
+              scale_y_log10()+
+              labs(x = paste0("parameter ", par), y = "reached minimum")+
+              ggtitle(paste0("Infered parameter ", par, " by reached minimum")))
+    }
+
+    if (pairwise_par){ #Plot par1 = f(par2)
+      if (npar > 1 & par < npar){
+        for (par2 in (par+1):npar){
+          print(ggplot2::ggplot()+
+                  geom_point(aes(x$minimizer[,par], x$minimizer[,par2]))+
+                  labs(x = paste0("Parameter ", par), y = paste0("Parameter ", par2))+
+                  ggtitle(paste0("Parameter ", par2, " by parameter ", par)))
+        }
+      }
+    }
+  }
+  if (boxplot){ #Normalized boxplots
+    aux <- as.data.frame(x$minimizer)
+    if (is.null(par_names)) colnames(aux) <- paste0("par", 1:ncol(aux))
+    else colnames(aux) <- par_names
+    aux <- stack(aux)
+    for (par in unique(aux$ind)){
+      aux[aux$ind == par,]$values <- aux[aux$ind == par,]$values/mean(aux[aux$ind == par,]$values)
+    }
+    print(ggplot2::ggplot(aux)+
+            geom_boxplot(aes(x = ind, y = values))+
+            labs(x = "Parameters", y = "Value/mean(Value)")+
+            ggtitle(paste0("Normalized boxplots\nfor each infered parameter")))
+  }
+}
+
+#_______________________________________________________________________________
+
+#' @title plot_objective
+#'
+#' @description Plot of objective = f(theta_index).
+#'
+#' @param ndraw Integer. Number of random variables to draw for one simulation of the model.
+#' @param nsim Integer. Number of simulations to run for each step of the optimisation algorithm.
+#' Computation time grows linearly with this number. Default to 10.
+#' @param data 1D array containing the observations.
+#' @param sumstats Function computing the distance between simulations and data of form sumstats(simulations, data) where simulations : 2D array and data : 1D array.
+#' ncol(simulations) = length(data) mandatory.
+#' @param simulatorQ Function of type simulatorQ(Theta, quantiles)
+#' where Theta is the parameter set for the simulations and quantiles are drawn in U(0,1).
+#' @param quantiles 2D array containing values following U(0,1).
+#' Row number = number of simulations.
+#' Column number = number of random variables to draw in one simulation.
+#' @param obj objective function of type objective(Theta). Default : directly computed with "sumstats" and "simulatorQ".
+#' @param index Integer. Index of the moving parameter.
+#' @param other_param Other parameters of the model. If NULL : assume 1D-model.
+#' If numeric : 2D-model, one curve.
+#' If 1D-array and dim2 is True (default) : 2D-model, one curve by value in other_param.
+#' If 1D-array and dim2 is False or 2D-array : (n>2)D-model, one curve by row in other_param.
+#' If your model has n>2 dimensions, you should define other_param as a matrix even if
+#' you have only one parameter set to test
+#' (with as.matrix(t(vect_param)) where vect_param is a 1D-array).
+#' @param lower Numeric. Lower value of the plot.
+#' @param upper Numeric. Upper value of the plot.
+#' @param dim2 Boolean. True if model is 2-dimensional.
+#' @param visualize_min Boolean. If True, show explicitly the minimum point.
+#' @param plot_legend Boolean. If True (default), plots the legend.
+#' @param add_to_plot ggplot object. If not NULL,
+#' will add all curves/points on previous plot instead of creating a new one.
+#' Does not change title/labels/limits defined in previous plot.
+#'
+#' @return ggplot object representing the objective function to be minimized.
+#'
+#' @examples
+#'data <- rep(100, 5)
+#'
+#'sumstats <- function(simulations, data){
+#' mean_simu <- mean(rowMeans(simulations))
+#' mean_data <- mean(data)
+#' (mean_simu-mean_data)^2
+#'}
+#'
+#'simulatorQ <- function(Theta, quantiles){
+#' qpois(quantiles, lambda = Theta)
+#'}
+#'
+#' plot_objective(5, 10, data, sumstats, simulatorQ, lower = 0, upper = 200)
+#'
+#' @export
+
+plot_objective <- function(ndraw, nsim, data, sumstats, simulatorQ,
+                           quantiles = NULL,
+                           obj = NULL,
+                           index = NULL,
+                           other_param = NULL,
+                           lower = 0,
+                           upper = 1,
+                           dim2 = TRUE,
+                           visualize_min = TRUE,
+                           plot_legend = TRUE,
+                           add_to_plot = NULL){
+
+  if (is.null(obj)){
+    if (is.null(quantiles)){
+      q <- matrix(runif(ndraw*nsim), nrow = nsim)
+    }
+    else {
+      q <- quantiles
+    }
+    intern_obj <- function(Theta) flimobjective(Theta, q, data, sumstats, simulatorQ)
+  }
+  else {
+    intern_obj <- obj
+  }
+
+  if (is.null(other_param)){
+    return(plot_objective1D(intern_obj, lower = lower, upper = upper,
+                            visualize_min = visualize_min,
+                            add_to_plot = add_to_plot))
+  }
+  else if (is.null(dim(other_param))){
+    if (dim2){
+      other_param <- as.matrix(other_param) #convert to length*1 matrix
+
+      return(plot_objectivenD(intern_obj, index, other_param,
+                              lower = lower, upper = upper,
+                              visualize_min = visualize_min,
+                              plot_legend = plot_legend,
+                              add_to_plot = add_to_plot))
+    }
+    else{
+      other_param <- as.matrix(t(other_param)) #convert to 1*length matrix
+
+      return(plot_objectivenD(intern_obj, index, other_param, lower = lower, upper = upper,
+                              visualize_min = visualize_min,
+                              plot_legend = plot_legend,
+                              add_to_plot = add_to_plot))
+    }
+  }
+  else {
+    return(plot_objectivenD(intern_obj, index, other_param, lower = lower, upper = upper,
+                            visualize_min = visualize_min,
+                            plot_legend = plot_legend,
+                            add_to_plot = add_to_plot))
+  }
+}
+
+
+plot_objective1D <- function(obj,
+                             lower = 0,
+                             upper = 1,
+                             visualize_min = TRUE,
+                             add_to_plot = NULL){
+  #plot_objective when model has 1 parameter
+  #internal function
+
+  x <- seq(lower, upper, length.out = 300)
+  y <- sapply(x, FUN = obj)
+
+  if (!is.null(add_to_plot)){
+    p <- add_to_plot
+  }
+  else{
+    p<-ggplot2::ggplot()
+  }
+
+  p <- p+geom_line(aes(x,y))
+
+  if (is.null(add_to_plot)){
+    p <- p + xlim(lower, upper)+
+      ggtitle(paste("Objective function to minimize by parameter 1"))+
+      labs(x = paste0("theta_1"), y = "objective value")
+  }
+
+  if (visualize_min){
+    #approaching minimum with y values
+    ymin <- min(y, na.rm = TRUE)
+    xmin <- x[which.min(y)]
+
+    p <- p + geom_point(aes(xmin, ymin)) +
+      geom_segment(aes(x = xmin, xend = xmin, y = 0, yend = ymin), size = 0.25)
+  }
+
+  p
+}
+
+plot_objectivenD <- function(obj,
+                             index,
+                             other_param,
+                             lower = 0,
+                             upper = 1,
+                             visualize_min = TRUE,
+                             plot_legend = TRUE,
+                             add_to_plot = NULL){
+  #plot_objective when model has n>=2 parameters
+  #internal function
+  #other_param has to be a 2D-array (conversion done in plot_objective function)
+
+  other_par <- NULL #remove R CHECK NOTE
+  xmin <- #remove R CHECK NOTE
+  ymin <- #remove R CHECK NOTE
+
+  if (index < 1 | index > nrow(other_param)+1){
+    warning("FAILURE : Index not valid")
+    stop()
+  }
+
+  x <- seq(lower, upper, length.out = 300)
+  obj_values <- NULL
+
+  if (visualize_min){
+    minima <- NULL
+  }
+
+  aux <- function(x, other_par){
+    Theta <- rep(NA, (length(other_par)+1))
+    Theta[index] <- x
+    if (index > 1){
+      Theta[1:(index-1)] <- other_par[1:(index-1)]
+    }
+    if (index < length(other_par)+1){
+      Theta[(index+1):(length(other_par)+1)] <- other_par[index:length(other_par)]
+    }
+    obj(Theta)
+  }
+
+  for (rpar in 1:nrow(other_param)){
+    par <- other_param[rpar,]
+
+    par_ref <- rep(NA, length(par)+1)
+    par_ref[index] <- "x"
+    if (index > 1){
+      par_ref[1:(index-1)] <- as.character(par[1:(index-1)])
+    }
+    if (index < length(par)+1){
+      par_ref[(index+1):(length(par)+1)] <- as.character(par[index:length(par)])
+    }
+    par_ref <- paste0(par_ref, collapse = ";")
+    obj_values <- rbind(obj_values,
+                        data.frame(x = x,
+                                   y = sapply(x, FUN = aux, other_par = par),
+                                   other_par = as.factor(par_ref)))
+
+    if (visualize_min){
+      x <- obj_values[obj_values$other_par == par_ref,]$x
+      y <- obj_values[obj_values$other_par == par_ref,]$y
+      minima <- rbind(minima, data.frame(xmin = x[which.min(y)],
+                                         ymin = min(y, na.rm = TRUE),
+                                         other_par = as.factor(par_ref)))
+    }
+  }
+
+  if (!is.null(add_to_plot)){
+    p <- add_to_plot
+  }
+  else{
+    p <- ggplot2::ggplot(obj_values)
+  }
+
+  p <- p + geom_line(data = obj_values, aes(x,y, color = other_par))+
+    xlim(lower, upper)+
+    ggtitle(paste("Objective function to minimize by parameter", index))+
+    labs(x = paste0("theta_", index), y = "objective value",
+         color = "Param.")
+
+  if (is.null(add_to_plot)){
+    p <- p + ggtitle(paste("Objective function to minimize by parameter", index))+
+      labs(x = paste0("theta_", index), y = "objective value")
+  }
+
+  if (visualize_min){
+    p <- p + geom_point(data = minima, aes(xmin, ymin, color = other_par))+
+      geom_segment(data = minima, aes(x = xmin, xend = xmin,
+                                      y = 0, yend = ymin, color = other_par),
+                   size = 0.25)
+  }
+  if (!plot_legend){
+    p <- p + theme(legend.position = "none")
+  }
+  p
+}
+
