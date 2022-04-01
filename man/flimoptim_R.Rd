@@ -27,19 +27,26 @@ flimoptim_R(
 \arguments{
 \item{data}{1D array containing the observations.}
 
-\item{ndraw}{Integer. Number of random variables to draw for one simulation of the model.}
+\item{ndraw}{Integer. Number of random variables to draw
+for one simulation of the model.}
 
-\item{sumstats}{Summary statistics to measure distance between simulations and data.
-R function of type sumstats(simulations, data) where simulations : 2D array and data : 1D array.
+\item{sumstats}{Summary statistics to measure distance
+between simulations and data.
+R function of type sumstats(simulations, data)
+where simulations : 2D array and data : 1D array.
 ncol(simulations) = length(data) mandatory.}
 
-\item{simulatorQ}{Simulator of the stochastic process with fixed quantiles (see Readme).
-Theta is the parameter set for the simulations and quantiles are drawn in U(0,1).}
+\item{simulatorQ}{Simulator of the stochastic process with fixed quantiles
+(see README).
+Theta is the parameter set for the simulations and
+quantiles are drawn in U(0,1).}
 
-\item{obj}{Objective function to minimize. Default : is directly computed from sumstats and simulatorQ.
+\item{obj}{Objective function to minimize.
+Default : is directly computed from sumstats and simulatorQ.
 R function of type objective(Theta, quantiles)}
 
-\item{nsim}{Integer. Number of simulations to run for each step of the optimisation algorithm.
+\item{nsim}{Integer. Number of simulations to run for each step
+of the optimization algorithm.
 Computation time grows linearly with this number. Default to 10.}
 
 \item{ninfer}{Integer. Number of independent inferences to run. Default to 1.}
@@ -48,25 +55,34 @@ Computation time grows linearly with this number. Default to 10.}
 
 \item{upper}{1D array. Upper bounds for parameters. Same length as lower.}
 
-\item{Theta0}{1D array. Initial values of the parameters. Default : mean(lower, upper).}
+\item{Theta0}{1D array. Initial values of the parameters.
+Default : mean(lower, upper).}
 
-\item{randomTheta0}{Boolean. If True, Theta0 is randomly drawn between lower and upper bounds.}
+\item{randomTheta0}{Boolean.
+If True, Theta0 is randomly drawn between lower and upper bounds.}
 
-\item{maxit}{Integer. Max number of iterations during optimization. Default to 1000.}
+\item{maxit}{Integer. Max number of iterations during optimization.
+Default to 1000.}
 
-\item{factr}{Float. Control parameter for L-BFGS-B method in stats::optim. Default to 1e7.}
+\item{factr}{Float. Control parameter for L-BFGS-B method in stats::optim.
+Default to 1e7.}
 
-\item{pgtol}{Float. Control parameter for L-BFGS-B method in stats::optim. Default to 0.}
+\item{pgtol}{Float. Control parameter for L-BFGS-B method in stats::optim.
+Default to 0.}
 
 \item{show_trace}{Boolean. If true, shows standard trace. Default to false.}
 
-\item{store_quantiles}{Boolean. If true, stores every quantiles used for inference, to reproduce the results. Default to false.}
+\item{store_quantiles}{Boolean.
+If true, stores every quantiles used for inference, to reproduce the results.}
 
-\item{par_names}{vector of names for parameters. Default is "par1", ..., "parn".}
+\item{par_names}{vector of names for parameters.
+Default is "par1", ..., "parn".}
 }
 \value{
-Object of class flimo_result (list) containing every information about convergence results.
+Object of class flimo_result (list) containing every information
+about convergence results.
 }
 \description{
-Computes several parameter inferences with R optimizer (method L-BFGS-B).
+Computes several parameter inferences with R optimizer
+(method L-BFGS-B).
 }

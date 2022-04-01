@@ -38,26 +38,36 @@ flimoptim(
 \arguments{
 \item{data}{1D array containing the observations.}
 
-\item{ndraw}{Integer. Number of random variables to draw for one simulation of the model.}
+\item{ndraw}{Integer. Number of random variables to draw
+for one simulation of the model.}
 
-\item{sumstats}{Summary statistics to measure distance between simulations and data.
-In R mode : R function of type sumstats(simulations, data) where simulations : 2D array and data : 1D array.
+\item{sumstats}{Summary statistics to measure distance
+between simulations and data.
+In R mode : R function of type sumstats(simulations, data)
+where simulations : 2D array and data : 1D array.
 ncol(simulations) = length(data) mandatory.
-In Julia mode : a string containing the script of the Julia function sumstats(simulations, data).
+In Julia mode : a string containing the script of the Julia function
+sumstats(simulations, data).
 The name "sumstats" is mandatory.}
 
-\item{simulatorQ}{Simulator of the stochastic process with fixed quantiles (see Readme).
-or a string (in mode "Julia") containing the script of the Julia function simulatorQ(Theta, quantiles).
+\item{simulatorQ}{Simulator of the stochastic process with fixed quantiles
+(see README).
+or a string (in mode "Julia") containing the script of the Julia function
+simulatorQ(Theta, quantiles).
 In Julia mode, the name "simulatorQ" is mandatory.
-Theta is the parameter set for the simulations and quantiles are drawn in U(0,1).}
+Theta is the parameter set for the simulations and
+quantiles are drawn in U(0,1).}
 
-\item{obj}{Objective function to minimize. Default : is directly computed from sumstats and simulatorQ.
+\item{obj}{Objective function to minimize.
+Default : is directly computed from sumstats and simulatorQ.
 Either an R function of type objective(Theta, quantiles) (in mode "R")
-or a string (in mode "Julia") containing the script of the Julia function julia_obj(Theta, quantiles).
+or a string (in mode "Julia") containing the script of the Julia function
+julia_obj(Theta, quantiles).
 Warning : could be tricky if mode = "Julia" to call data.
 In Julia mode, the name "julia_obj" is mandatory.}
 
-\item{nsim}{Integer. Number of simulations to run for each step of the optimisation algorithm.
+\item{nsim}{Integer. Number of simulations to run for each step
+of the optimization algorithm.
 Computation time grows linearly with this number. Default to 10.}
 
 \item{ninfer}{Integer. Number of independent inferences to run. Default to 1.}
@@ -66,51 +76,82 @@ Computation time grows linearly with this number. Default to 10.}
 
 \item{upper}{1D array. Upper bounds for parameters. Same length as lower.}
 
-\item{Theta0}{1D array. Initial values of the parameters. Default : mean(lower, upper).}
+\item{Theta0}{1D array. Initial values of the parameters.
+Default : mean(lower, upper).}
 
-\item{randomTheta0}{Boolean. If True, Theta0 is randomly drawn between lower and upper bounds.}
+\item{randomTheta0}{Boolean.
+If True, Theta0 is randomly drawn between lower and upper bounds.}
 
-\item{mode}{String. "R" (default) or "Julia". See Readme.}
+\item{mode}{String. "R" (default) or "Julia". See README.}
 
-\item{AD}{Boolean. Only in Julia mode, uses Automatic Differentiation with IPNewton method. Default to true.}
+\item{AD}{Boolean.
+Only in Julia mode, uses Automatic Differentiation with IPNewton method.
+Default to true.}
 
-\item{method}{String. In Julia mode, allows to choose the optimization method : "Brent", "IPNewton". Default : IPNewton.}
+\item{method}{String.
+In Julia mode, allows to choose the optimization method :
+"Brent", "IPNewton". Default : IPNewton.}
 
-\item{maxit}{Integer. Max number of iterations during optimization. Default to 1000.}
+\item{maxit}{Integer. Max number of iterations during optimization.
+Default to 1000.}
 
-\item{time_lim}{Float. Time limit in second for each inference. Default to no limit. Not available for R mode and Brent method in Julia mode.}
+\item{time_lim}{Float. Time limit in second for each inference.
+Default to no limit. Not available for R mode and Brent method in Julia mode.}
 
-\item{factr}{Float. In R-mode : control parameter for L-BFGS-B method in stats::optim. Default to 1e7.}
+\item{factr}{Float.
+In R-mode : control parameter for L-BFGS-B method in stats::optim.
+Default to 1e7.}
 
-\item{pgtol}{Float. In R-mode : control parameter for L-BFGS-B method in stats::optim. Default to 0.}
+\item{pgtol}{Float.
+In R-mode : control parameter for L-BFGS-B method in stats::optim.
+Default to 0.}
 
-\item{xtol}{Float. In Julia mode with IPNewton method : xtol option in Optim.Options. Default to 0.}
+\item{xtol}{Float.
+In Julia mode with IPNewton method : xtol option in Optim.Options.
+Default to 0.}
 
-\item{ftol}{Float. In Julia mode with IPNewton method : ftol option in Optim.Options. Default to 0.}
+\item{ftol}{Float.
+In Julia mode with IPNewton method : ftol option in Optim.Options.}
 
-\item{gtol}{Float. In Julia mode with IPNewton method : gtol option in Optim.Options. Default to 1e-8.}
+\item{gtol}{Float.
+In Julia mode with IPNewton method : gtol option in Optim.Options.
+Default to 1e-8.}
 
-\item{reltol}{Float. In Julia mode with Brent method : reltol of Optim.optimize. Default is sqrt(.Machine$double.eps), about 1e-8.}
+\item{reltol}{Float.
+In Julia mode with Brent method : reltol of Optim.optimize.
+Default is sqrt(.Machine$double.eps), about 1e-8.}
 
-\item{abstol}{Float. In Julia mode with Brent method : abstol of Optim.optimize. Default is .Machine$double.eps, about 1e-16.}
+\item{abstol}{Float.
+In Julia mode with Brent method : abstol of Optim.optimize.
+Default is .Machine$double.eps, about 1e-16.}
 
 \item{show_trace}{Boolean. If true, shows standard trace. Default to false.}
 
-\item{store_trace}{Boolean. If true, stores standard trace as an array of strings. Default to false. Not available for R mode.}
+\item{store_trace}{Boolean.
+If true, stores standard trace as an array of strings.
+Default to false. Not available for R mode.}
 
-\item{store_quantiles}{Boolean. If true, stores every quantiles used for inference, to reproduce the results. Default to false.}
+\item{store_quantiles}{Boolean.
+If true, stores every quantiles used for inference, to reproduce the results.
+Default to false.}
 
-\item{par_names}{vector of names for parameters. Default is "par1", ..., "parn".}
+\item{par_names}{vector of names for parameters.
+Default is "par1", ..., "parn".}
 
-\item{load_julia}{Boolean. If true, run julia_load. It can take few seconds. Default to False.}
+\item{load_julia}{Boolean. If true, run julia_load.
+It can take few seconds. Default to False.}
 }
 \value{
-Object of class flimo_result (list) (converted from Julia object in Julia mode) containing every information about convergence results.
+Object of class flimo_result (list)
+(converted from Julia object in Julia mode) containing every information
+about convergence results.
 }
 \description{
-Computes several parameter inferences with R optimizer or Julia optimizer in a full Julia mode.
+Computes several parameter inferences with R optimizer or
+Julia optimizer in a full Julia mode.
 In R mode (default) : L-BFGS-B optimization.
-In Julia mode : either IPNewton with or without Automatic Differentation or Brent optimization.
+In Julia mode : either IPNewton with or without Automatic Differentiation
+or Brent optimization.
 }
 \examples{
 data <- rep(100, 5)

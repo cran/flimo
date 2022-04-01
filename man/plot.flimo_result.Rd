@@ -23,21 +23,28 @@
 
 \item{...}{optional args for generic method}
 
-\item{hist}{Boolean. If True, plots the histogram of each infered parameter. Default to false.}
+\item{hist}{Boolean. If True, plots the histogram of each inferred parameter.
+Default to false.}
 
 \item{bins}{Integer. Number of bins if hist is True.}
 
-\item{par_minimum}{Boolean. If True, plots each infered parameter by reached minimum. Default to false.}
+\item{par_minimum}{Boolean.
+If True, plots each inferred parameter by reached minimum. Default to false.}
 
-\item{pairwise_par}{Boolean. If True, plots each pairs of infered parameters. Default to false.}
+\item{pairwise_par}{Boolean.
+If True, plots each pairs of inferred parameters.Default to false.}
 
-\item{boxplot}{Boolean. If True, plots the boxplots of each infered parameter scaled by their mean. Default to true.}
+\item{boxplot}{Boolean.
+If True, plots the boxplots of each inferred parameter scaled by their mean.
+Default to true.}
 
-\item{par_names}{Vector of names for parameters. Default is "par1", ..., "parn".}
+\item{par_names}{Vector of names for parameters.
+Default is "par1", ..., "parn".}
 }
 \value{
 Nothing. Prints the asked ggplot objects.
 }
 \description{
-Shows the plots for most important inference results. Default only shows normalized boxplots for each infered parameter.
+Shows the plots for most important inference results.
+Default only shows normalized boxplots for each inferred parameter.
 }

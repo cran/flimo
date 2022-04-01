@@ -11,7 +11,7 @@ library(gridExtra)
 theme_set(theme_bw())
 
 ## ----first_run----------------------------------------------------------------
-#julia_setup()
+julia_setup()
 
 ## ----model_definition_1-------------------------------------------------------
 #Setup

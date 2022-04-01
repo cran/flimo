@@ -15,18 +15,23 @@ Column number = number of random variables to draw in one simulation.}
 
 \item{data}{1D array containing the observations.}
 
-\item{sumstats}{Function computing the distance between simulations and data of form sumstats(simulations, data) where simulations : 2D array and data : 1D array.
+\item{sumstats}{Function computing the distance between simulations and data
+of form sumstats(simulations, data) where
+simulations : 2D array and data : 1D array.
 ncol(simulations) = length(data) mandatory.}
 
 \item{simulatorQ}{Function of type simulatorQ(Theta, quantiles)
-where Theta is the parameter set for the simulations and quantiles are drawn in U(0,1).
+where Theta is the parameter set for the simulations
+and quantiles are drawn in U(0,1).
 See README for details.}
 }
 \value{
-Numeric value. Distance between summary statistics of data and simulations w.r.t. Theta.
+Numeric value. Distance between summary statistics of data
+and simulations w.r.t. Theta.
 }
 \description{
-Computes the summary statistics between simulations w.r.t. Theta and data. This function is to be minimized by flimoptim.
+Computes the summary statistics between simulations w.r.t.
+Theta and data. This function is to be minimized by flimoptim.
 }
 \examples{
 

@@ -7,12 +7,14 @@
 \method{print}{flimo_result}(x, ...)
 }
 \arguments{
-\item{x}{Object of class flimo_result from any mod/method algorithm of the flimo package.}
+\item{x}{Object of class flimo_result from any mod/method algorithm
+of the flimo package.}
 
 \item{...}{optional args for generic method}
 }
 \value{
-String containing most important information about argument of class flimo_result.
+String containing most important information about argument
+of class flimo_result.
 }
 \description{
 Prints most important information about inference results.

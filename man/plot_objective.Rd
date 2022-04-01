@@ -23,32 +23,41 @@ plot_objective(
 )
 }
 \arguments{
-\item{ndraw}{Integer. Number of random variables to draw for one simulation of the model.}
+\item{ndraw}{Integer.Number of random variables to draw
+for one simulation of the model.}
 
-\item{nsim}{Integer. Number of simulations to run for each step of the optimisation algorithm.
+\item{nsim}{Integer. Number of simulations to run for each step
+of the optimization algorithm.
 Computation time grows linearly with this number. Default to 10.}
 
 \item{data}{1D array containing the observations.}
 
-\item{sumstats}{Function computing the distance between simulations and data of form sumstats(simulations, data) where simulations : 2D array and data : 1D array.
+\item{sumstats}{Function computing the distance
+between simulations and data of form sumstats(simulations, data)
+where simulations : 2D array and data : 1D array.
 ncol(simulations) = length(data) mandatory.}
 
 \item{simulatorQ}{Function of type simulatorQ(Theta, quantiles)
-where Theta is the parameter set for the simulations and quantiles are drawn in U(0,1).}
+where Theta is the parameter set for the simulations and
+quantiles are drawn in U(0,1).}
 
 \item{quantiles}{2D array containing values following U(0,1).
 Row number = number of simulations.
 Column number = number of random variables to draw in one simulation.}
 
-\item{obj}{objective function of type objective(Theta). Default : directly computed with "sumstats" and "simulatorQ".}
+\item{obj}{objective function of type objective(Theta).
+Default : directly computed with "sumstats" and "simulatorQ".}
 
 \item{index}{Integer. Index of the moving parameter.}
 
 \item{other_param}{Other parameters of the model. If NULL : assume 1D-model.
 If numeric : 2D-model, one curve.
-If 1D-array and dim2 is True (default) : 2D-model, one curve by value in other_param.
-If 1D-array and dim2 is False or 2D-array : (n>2)D-model, one curve by row in other_param.
-If your model has n>2 dimensions, you should define other_param as a matrix even if
+If 1D-array and dim2 is True (default) :
+2D-model, one curve by value in other_param.
+If 1D-array and dim2 is False or 2D-array : (n>2)D-model,
+one curve by row in other_param.
+If your model has n>2 dimensions,
+you should define other_param as a matrix even if
 you have only one parameter set to test
 (with as.matrix(t(vect_param)) where vect_param is a 1D-array).}
 

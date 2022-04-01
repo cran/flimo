@@ -10,5 +10,6 @@ julia_setup()
 Boolean. True if correct setup, False else.
 }
 \description{
-Checks installation of Julia and install the needed packages. May take little time to run.Only run the first time you use Jflimo.
+Checks installation of Julia and install the needed packages.
+May take little time to run.Only run the first time you use Jflimo.
 }

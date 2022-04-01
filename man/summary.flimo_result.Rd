@@ -7,12 +7,14 @@
 \method{summary}{flimo_result}(object, ...)
 }
 \arguments{
-\item{object}{Object of class flimo_result from any mode/method algorithm of the Jflimo package.}
+\item{object}{Object of class flimo_result from any mode/method algorithm
+of the Jflimo package.}
 
 \item{...}{optional args for generic method summary}
 }
 \value{
-List containing most important information about argument of class flimo_result.
+List containing most important information about argument
+of class flimo_result.
 }
 \description{
 Most important information about inference results.

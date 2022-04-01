@@ -15,9 +15,11 @@ check_simulator(
 }
 \arguments{
 \item{simulatorQ}{Function of type simulatorQ(Theta, quantiles)
-where Theta is the parameter set for the simulations and quantiles are drawn in U(0,1).}
+where Theta is the parameter set for the simulations and
+quantiles are drawn in U(0,1).}
 
-\item{ndraw}{Integer. Number of random variables to draw for one simulation of the model.}
+\item{ndraw}{Integer. Number of random variables to draw
+for one simulation of the model.}
 
 \item{Theta_lower}{1D numeric array. Lower bounds of Theta parameters.}
 
@@ -32,7 +34,7 @@ Boolean. True if no random effect was detected, False else.
 }
 \description{
 Run simulations to catch random variations.
-Warning : does not check it formaly.
+Warning : does not check it formally.
 Warning : does not check if quantiles are used several times.
 }
 \examples{

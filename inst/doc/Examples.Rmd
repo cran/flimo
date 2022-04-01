@@ -26,17 +26,24 @@ library(gridExtra)
 theme_set(theme_bw())
 ```
 
-##Initial Setup
+## Overview
+
+Flimo (Fixed Landscape Inference MethOd) is a likelihood-free inference method for stochastic models. It is based on simple simulations of the process under study with a specific management of the randomness. This makes it possible to use deterministic optimization algorithms to find the optimal parameters in the sense of summary statistics.
+
+This document presents two small examples to illustrate how the method works.
+
+Inference is possible in R but is more efficient in the Julia language for non-trivial models. This Julia mode uses the Jflimo package available on the git page of the project <https://metabarcoding.org/flimo>.
+
+## Initial Setup
 
 Only run the first time you load flimo. Installing Julia packages.
 
-
 ```{r first_run}
-#julia_setup()
+julia_setup()
 ```
 
 
-##Example 1 : Poisson Distribution
+## Example 1 : Poisson Distribution
 
 Five Poisson variables with parameter = 100 are drawn. We try to find this value by comparing mean of 10 simulated Poisson variables with the observed data. The summary statistic is :
 
@@ -155,6 +162,9 @@ plot_objective(ndraw1, nsim1, data1, sumstats1, simulatorQ1N,
                lower = 71, upper = 72, visualize_min = FALSE, add_to_plot = p,
                quantiles = quantiles1)
 ```
+
+Flimo method is illustrated below:
+
 ```{r figure_method}
 nsimplot <- 5
 quantilesplot <- matrix(runif(ndraw1*nsimplot), nrow = nsimplot)
@@ -208,7 +218,7 @@ ggplot()+
 
 ```
 
-Warning : optimization issues in R for normalized process and Theta close to 0. Lower bound set to 1.
+There are optimization issues in R for normalized process and Theta close to 0. Lower bound set to 1.
 
 ```{r optimization_1}
 #Optimization with normal approximation of Poisson distribution
@@ -297,7 +307,7 @@ system.time(
 
 
 
-##Example 2 : Normal Distribution
+## Example 2 : Normal Distribution
 
 Five normal variables with mean = 0 and sd = 1 are drawn. We try to find these mean/sd values by comparing mean and sd of 10 simulated normal variables with the observed data. The summary statistic is :
 
