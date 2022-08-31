@@ -5,10 +5,10 @@
 \title{flimoptim}
 \usage{
 flimoptim(
-  data,
   ndraw,
-  sumstats,
-  simulatorQ,
+  data = NULL,
+  dsumstats = NULL,
+  simulatorQ = NULL,
   obj = NULL,
   nsim = 10,
   ninfer = 1,
@@ -19,8 +19,10 @@ flimoptim(
   mode = c("R", "Julia"),
   AD = TRUE,
   method = "",
+  obj_threshold = Inf,
+  number_tries = 1,
   maxit = 1000,
-  time_lim = NaN,
+  time_limit = NaN,
   factr = 1e+07,
   pgtol = 0,
   xtol = 0,
@@ -36,19 +38,18 @@ flimoptim(
 )
 }
 \arguments{
-\item{data}{1D array containing the observations.}
-
 \item{ndraw}{Integer. Number of random variables to draw
 for one simulation of the model.}
 
-\item{sumstats}{Summary statistics to measure distance
+\item{data}{1D array containing the observations.}
+
+\item{dsumstats}{Summary statistics to measure distance
 between simulations and data.
-In R mode : R function of type sumstats(simulations, data)
+In R mode : R function of type dsumstats(simulations, data)
 where simulations : 2D array and data : 1D array.
 ncol(simulations) = length(data) mandatory.
 In Julia mode : a string containing the script of the Julia function
-sumstats(simulations, data).
-The name "sumstats" is mandatory.}
+dsumstats(simulations, data). The name "dsumstats" is mandatory.}
 
 \item{simulatorQ}{Simulator of the stochastic process with fixed quantiles
 (see README).
@@ -59,7 +60,7 @@ Theta is the parameter set for the simulations and
 quantiles are drawn in U(0,1).}
 
 \item{obj}{Objective function to minimize.
-Default : is directly computed from sumstats and simulatorQ.
+Default : is directly computed from dsumstats and simulatorQ.
 Either an R function of type objective(Theta, quantiles) (in mode "R")
 or a string (in mode "Julia") containing the script of the Julia function
 julia_obj(Theta, quantiles).
@@ -72,9 +73,11 @@ Computation time grows linearly with this number. Default to 10.}
 
 \item{ninfer}{Integer. Number of independent inferences to run. Default to 1.}
 
-\item{lower}{1D array. Lower bounds for parameters. Same length as upper.}
+\item{lower}{1D array. Lower bounds for parameters. Same length as upper.
+With Nelder-Mead in Julia mode: only used for starting point.}
 
-\item{upper}{1D array. Upper bounds for parameters. Same length as lower.}
+\item{upper}{1D array. Upper bounds for parameters. Same length as lower.
+With Nelder-Mead in Julia mode: only used for starting point.}
 
 \item{Theta0}{1D array. Initial values of the parameters.
 Default : mean(lower, upper).}
@@ -90,12 +93,19 @@ Default to true.}
 
 \item{method}{String.
 In Julia mode, allows to choose the optimization method :
-"Brent", "IPNewton". Default : IPNewton.}
+"IPNewton", "Brent" or "NelderMead". Default : IPNewton.}
+
+\item{obj_threshold}{Float. Threshold score. If Final value of objective is
+bigger, relaunch the inference if number_tries is not reached.
+The purpose is to avoid local minima. Default to Inf (no threshold).}
+
+\item{number_tries}{Integer. Number of tries (inferences) for the objective
+value to reach a point lower than obj_threshold. Default to 1.}
 
 \item{maxit}{Integer. Max number of iterations during optimization.
 Default to 1000.}
 
-\item{time_lim}{Float. Time limit in second for each inference.
+\item{time_limit}{Float. Time limit in second for each inference.
 Default to no limit. Not available for R mode and Brent method in Julia mode.}
 
 \item{factr}{Float.
@@ -150,26 +160,26 @@ about convergence results.
 Computes several parameter inferences with R optimizer or
 Julia optimizer in a full Julia mode.
 In R mode (default) : L-BFGS-B optimization.
-In Julia mode : either IPNewton with or without Automatic Differentiation
-or Brent optimization.
+In Julia mode : either IPNewton with or without Automatic Differentiation,
+Nelder-Mead or Brent optimization.
+Argument ndraw is mandatory.
+You need either to provide data, dsumstats AND simulatorQ
+OR obj.
 }
 \examples{
 data <- rep(100, 5)
 
-sumstats <- function(simulations, data){
+simulatorQ <- function(Theta, quantiles){
+qpois(quantiles, lambda = Theta)
+}
+dsumstats <- function(simulations, data){
 mean_simu <- mean(rowMeans(simulations))
 mean_data <- mean(data)
 (mean_simu-mean_data)^2
 }
 
-simulatorQ <- function(Theta, quantiles){
-qpois(quantiles, lambda = Theta)
-}
-
-flimoptim(data, 5, sumstats, simulatorQ,
-nsim = 10,
+flimoptim(5, data, dsumstats, simulatorQ,
 lower = 50,
-upper = 150,
-method = "Brent")
+upper = 150)
 
 }

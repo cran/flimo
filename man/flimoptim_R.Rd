@@ -5,10 +5,10 @@
 \title{flimoptim_R}
 \usage{
 flimoptim_R(
-  data,
   ndraw,
-  sumstats,
-  simulatorQ,
+  data = NULL,
+  dsumstats = NULL,
+  simulatorQ = NULL,
   obj = NULL,
   nsim = 10,
   ninfer = 1,
@@ -16,6 +16,8 @@ flimoptim_R(
   upper = 1,
   Theta0 = (lower + upper)/2,
   randomTheta0 = FALSE,
+  obj_threshold = Inf,
+  number_tries = 1,
   maxit = 1000,
   factr = 1e+07,
   pgtol = 0,
@@ -25,14 +27,14 @@ flimoptim_R(
 )
 }
 \arguments{
-\item{data}{1D array containing the observations.}
-
 \item{ndraw}{Integer. Number of random variables to draw
 for one simulation of the model.}
 
-\item{sumstats}{Summary statistics to measure distance
+\item{data}{1D array containing the observations.}
+
+\item{dsumstats}{Summary statistics to measure distance
 between simulations and data.
-R function of type sumstats(simulations, data)
+R function of type dsumstats(simulations, data)
 where simulations : 2D array and data : 1D array.
 ncol(simulations) = length(data) mandatory.}
 
@@ -42,7 +44,7 @@ Theta is the parameter set for the simulations and
 quantiles are drawn in U(0,1).}
 
 \item{obj}{Objective function to minimize.
-Default : is directly computed from sumstats and simulatorQ.
+Default : is directly computed from dsumstats and simulatorQ.
 R function of type objective(Theta, quantiles)}
 
 \item{nsim}{Integer. Number of simulations to run for each step
@@ -60,6 +62,13 @@ Default : mean(lower, upper).}
 
 \item{randomTheta0}{Boolean.
 If True, Theta0 is randomly drawn between lower and upper bounds.}
+
+\item{obj_threshold}{Float. Threshold score. If Final value of objective is
+bigger, relaunch the inference if number_tries is not reached.
+The purpose is to avoid local minima. Default to Inf (no threshold).}
+
+\item{number_tries}{Integer. Number of tries (inferences) for the objective
+value to reach a point lower than obj_threshold. Default to 1.}
 
 \item{maxit}{Integer. Max number of iterations during optimization.
 Default to 1000.}

@@ -41,6 +41,7 @@ Warning : does not check if quantiles are used several times.
 simulatorQ <- function(Theta, quantiles){
 qpois(quantiles, lambda = Theta)
 }
-check_simulator(simulatorQ, 5, Theta_lower = 50, Theta_upper = 150)
+check_simulator(simulatorQ, 5,
+Theta_lower = 50, Theta_upper = 150)
 
 }

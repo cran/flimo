@@ -6,14 +6,14 @@
 \usage{
 plot_objective(
   ndraw,
-  nsim,
-  data,
-  sumstats,
-  simulatorQ,
-  quantiles = NULL,
+  data = NULL,
+  dsumstats = NULL,
+  simulatorQ = NULL,
   obj = NULL,
+  quantiles = NULL,
   index = NULL,
   other_param = NULL,
+  nsim = 10,
   lower = 0,
   upper = 1,
   dim2 = TRUE,
@@ -26,14 +26,10 @@ plot_objective(
 \item{ndraw}{Integer.Number of random variables to draw
 for one simulation of the model.}
 
-\item{nsim}{Integer. Number of simulations to run for each step
-of the optimization algorithm.
-Computation time grows linearly with this number. Default to 10.}
-
 \item{data}{1D array containing the observations.}
 
-\item{sumstats}{Function computing the distance
-between simulations and data of form sumstats(simulations, data)
+\item{dsumstats}{Function computing the distance
+between simulations and data of form dsumstats(simulations, data)
 where simulations : 2D array and data : 1D array.
 ncol(simulations) = length(data) mandatory.}
 
@@ -41,12 +37,12 @@ ncol(simulations) = length(data) mandatory.}
 where Theta is the parameter set for the simulations and
 quantiles are drawn in U(0,1).}
 
+\item{obj}{objective function of type objective(Theta).
+Default : directly computed with "dsumstats" and "simulatorQ".}
+
 \item{quantiles}{2D array containing values following U(0,1).
 Row number = number of simulations.
 Column number = number of random variables to draw in one simulation.}
-
-\item{obj}{objective function of type objective(Theta).
-Default : directly computed with "sumstats" and "simulatorQ".}
 
 \item{index}{Integer. Index of the moving parameter.}
 
@@ -60,6 +56,10 @@ If your model has n>2 dimensions,
 you should define other_param as a matrix even if
 you have only one parameter set to test
 (with as.matrix(t(vect_param)) where vect_param is a 1D-array).}
+
+\item{nsim}{Integer. Number of simulations to run for each step
+of the optimization algorithm.
+Computation time grows linearly with this number. Default to 10.}
 
 \item{lower}{Numeric. Lower value of the plot.}
 
@@ -80,11 +80,13 @@ ggplot object representing the objective function to be minimized.
 }
 \description{
 Plot of objective = f(theta_index).
+You need either to provide data, dsumstats AND simulatorQ
+OR obj.
 }
 \examples{
 data <- rep(100, 5)
 
-sumstats <- function(simulations, data){
+dsumstats <- function(simulations, data){
 mean_simu <- mean(rowMeans(simulations))
 mean_data <- mean(data)
 (mean_simu-mean_data)^2
@@ -94,6 +96,7 @@ simulatorQ <- function(Theta, quantiles){
 qpois(quantiles, lambda = Theta)
 }
 
-plot_objective(5, 10, data, sumstats, simulatorQ, lower = 0, upper = 200)
+plot_objective(5, data, dsumstats, simulatorQ,
+lower = 0, upper = 200)
 
 }

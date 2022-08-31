@@ -5,10 +5,10 @@
 \title{flimoptim_Julia}
 \usage{
 flimoptim_Julia(
-  data,
   ndraw,
-  sumstats,
-  simulatorQ,
+  data = NULL,
+  dsumstats = NULL,
+  simulatorQ = NULL,
   julia_obj = NULL,
   nsim = 10,
   ninfer = 1,
@@ -18,8 +18,10 @@ flimoptim_Julia(
   randomTheta0 = FALSE,
   AD = TRUE,
   method = "",
+  obj_threshold = Inf,
+  number_tries = 1,
   maxit = 1000,
-  time_lim = NULL,
+  time_limit = NULL,
   xtol = 0,
   ftol = 0,
   gtol = 1e-08,
@@ -33,16 +35,16 @@ flimoptim_Julia(
 )
 }
 \arguments{
-\item{data}{1D array containing the observations.}
-
 \item{ndraw}{Integer. Number of random variables to draw
 for one simulation of the model.}
 
-\item{sumstats}{Summary statistics to measure distance
+\item{data}{1D array containing the observations.}
+
+\item{dsumstats}{Summary statistics to measure distance
 between simulations and data.
 String containing the script of the Julia function
-sumstats(simulations, data).
-The name "sumstats" is mandatory.}
+dsumstats(simulations, data).
+The name "dsumstats" is mandatory.}
 
 \item{simulatorQ}{Simulator of the stochastic process
 with fixed quantiles (see README).
@@ -52,7 +54,7 @@ Theta is the parameter set for the simulations and
 quantiles are drawn in U(0,1).}
 
 \item{julia_obj}{Objective function to minimize.
-Default : is directly computed from sumstats and simulatorQ.
+Default : is directly computed from dsumstats and simulatorQ.
 String containing the script of the Julia function
 julia_obj(Theta, quantiles).
 Warning : can be tricky to call data.
@@ -79,13 +81,20 @@ Only in Julia mod, uses Automatic Differentiation with IPNewton method.
 Default to true.}
 
 \item{method}{String.
-Allows to choose the optimization method : "Brent", "IPNewton".
-Default : IPNewton.}
+Allows to choose the optimization method :
+"Brent", "IPNewton" or "NelderMead". Default : IPNewton.}
+
+\item{obj_threshold}{Float. Threshold score. If Final value of objective is
+bigger, relaunch the inference if number_tries is not reached.
+The purpose is to avoid local minima. Default to Inf (no threshold).}
+
+\item{number_tries}{Integer. Number of tries (inferences) for the objective
+value to reach a point lower than obj_threshold. Default to 1.}
 
 \item{maxit}{Integer. Max number of iterations during optimization.
 Default to 1000.}
 
-\item{time_lim}{Float. Time limit in second for each inference.
+\item{time_limit}{Float. Time limit in second for each inference.
 Default to no limit. Not available for Brent method.}
 
 \item{xtol}{Float. With IPNewton method : xtol option in Optim.Options.
@@ -125,5 +134,6 @@ containing every information about convergence results.
 }
 \description{
 Computes several parameter inferences with Julia optimizer and
-either IPNewton with or without Automatic Differentiation or Brent method.
+either IPNewton with or without Automatic Differentiation, Nelder-Mead
+or Brent method.
 }

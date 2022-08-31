@@ -4,7 +4,7 @@
 \alias{flimobjective}
 \title{flimobjective}
 \usage{
-flimobjective(Theta, quantiles, data, sumstats, simulatorQ)
+flimobjective(Theta, quantiles, data, dsumstats, simulatorQ)
 }
 \arguments{
 \item{Theta}{1D array. parameters for the simulations.}
@@ -15,8 +15,8 @@ Column number = number of random variables to draw in one simulation.}
 
 \item{data}{1D array containing the observations.}
 
-\item{sumstats}{Function computing the distance between simulations and data
-of form sumstats(simulations, data) where
+\item{dsumstats}{Function computing the distance between simulations and data
+of form dsumstats(simulations, data) where
 simulations : 2D array and data : 1D array.
 ncol(simulations) = length(data) mandatory.}
 
@@ -39,7 +39,7 @@ quantiles <- matrix(runif(50), nrow = 10)
 
 data <- rep(100, 5)
 
-sumstats <- function(simulations, data){
+dsumstats <- function(simulations, data){
 mean_simu <- mean(rowMeans(simulations))
 mean_data <- mean(data)
 (mean_simu-mean_data)^2
@@ -49,6 +49,6 @@ simulatorQ <- function(Theta, quantiles){
 qpois(quantiles, lambda = Theta)
 }
 
-flimobjective(100, quantiles, data, sumstats, simulatorQ)
+flimobjective(100, quantiles, data, dsumstats, simulatorQ)
 
 }
