@@ -1,8 +1,6 @@
 
 #' @import JuliaConnectoR
 #' @import ggplot2
-#' @import gridExtra
-#' @import latex2exp
 #' @importFrom stats median optim runif
 #' @importFrom utils stack write.csv
 #'
@@ -133,7 +131,8 @@ flimobjective <- function(Theta, quantiles, data, dsumstats, simulatorQ){
 #'
 #' @description Computes several parameter inferences with R optimizer or
 #' Julia optimizer in a full Julia mode.
-#' In R mode (default) : L-BFGS-B optimization.
+#' In R mode (default) : L-BFGS-B optimization or other methods available for
+#' the base::optim function.
 #' In Julia mode : either IPNewton with or without Automatic Differentiation,
 #' Nelder-Mead or Brent optimization.
 #' Argument ndraw is mandatory.
@@ -183,6 +182,9 @@ flimobjective <- function(Theta, quantiles, data, dsumstats, simulatorQ){
 #' @param method String.
 #' In Julia mode, allows to choose the optimization method :
 #' "IPNewton", "Brent" or "NelderMead". Default : IPNewton.
+#' In R mode, allows to choose any of the optimization methods used by
+#' base::optim. Default is L-BFGS-B. Random methods do not work with flimo.
+#' Bounded methods are L-BFGS-B and Brent.
 #' @param obj_threshold Float. Threshold score. If Final value of objective is
 #' bigger, relaunch the inference if number_tries is not reached.
 #' The purpose is to avoid local minima. Default to Inf (no threshold).
@@ -319,6 +321,7 @@ flimoptim <- function(ndraw,
                 Theta0 = Theta0,
                 randomTheta0 = randomTheta0,
                 obj_threshold = obj_threshold,
+                method = method,
                 number_tries = number_tries,
                 maxit = maxit,
                 factr = factr,
@@ -333,8 +336,7 @@ flimoptim <- function(ndraw,
 
 #' @title flimoptim_R
 #'
-#' @description Computes several parameter inferences with R optimizer
-#' (method L-BFGS-B).
+#' @description Computes several parameter inferences with R optimizer.
 #'
 #' @param ndraw Integer. Number of random variables to draw
 #' for one simulation of the model.
@@ -365,6 +367,9 @@ flimoptim <- function(ndraw,
 #' @param obj_threshold Float. Threshold score. If Final value of objective is
 #' bigger, relaunch the inference if number_tries is not reached.
 #' The purpose is to avoid local minima. Default to Inf (no threshold).
+#' @param method String. Either "L-BFGS-B" (default) or any other method used by
+#' the base function optim. Stochastic methods do not work with flimo.
+#' If you want to provide bounds, you need to use L-BFGS-B or Brent.
 #' @param number_tries Integer. Number of tries (inferences) for the objective
 #' value to reach a point lower than obj_threshold. Default to 1.
 #' @param maxit Integer. Max number of iterations during optimization.
@@ -396,6 +401,7 @@ flimoptim_R <- function(ndraw,
                         Theta0 = (lower+upper)/2,
                         randomTheta0 = FALSE,
                         obj_threshold = Inf,
+                        method = "L-BFGS-B",
                         number_tries = 1,
                         maxit = 1e3,
                         factr = 1e7,
@@ -403,7 +409,7 @@ flimoptim_R <- function(ndraw,
                         show_trace = FALSE,
                         store_quantiles = FALSE,
                         par_names = NULL){
-
+  if (method == ""){method <- "L-BFGS-B"}
   minimizer <- matrix(rep(NA, ninfer*length(lower)), nrow = ninfer)
   if (is.null(par_names)) colnames(minimizer) <- paste0("par", 1:length(lower))
   else colnames(minimizer) <- par_names
@@ -442,7 +448,7 @@ flimoptim_R <- function(ndraw,
       }
       start_time <- Sys.time()
       opt <- stats::optim(par = Theta0, fn = intern_obj,
-                          method ="L-BFGS-B",
+                          method = method,
                           lower = lower, upper = upper,
                           control = list(trace = show_trace,
                                          maxit = maxit,
@@ -460,14 +466,14 @@ flimoptim_R <- function(ndraw,
     converged[infer] <- opt$convergence == 0
     f_calls[infer] <- opt$counts[1]
     g_calls[infer] <- opt$counts[2]
-    message[infer] <- opt$message
+    if (!is.null(opt$message)){message[infer] <- opt$message}
     if (store_quantiles){
       all_quantiles[infer,,] <- quantiles
     }
   }
   optim_result <- NULL
   optim_result$mode <- "R"
-  optim_result$method <- "L-BFGS-B"
+  optim_result$method <- method
   optim_result$AD <- FALSE
   optim_result$minimizer <- minimizer
   optim_result$minimum <- minimum

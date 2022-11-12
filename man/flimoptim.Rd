@@ -93,7 +93,10 @@ Default to true.}
 
 \item{method}{String.
 In Julia mode, allows to choose the optimization method :
-"IPNewton", "Brent" or "NelderMead". Default : IPNewton.}
+"IPNewton", "Brent" or "NelderMead". Default : IPNewton.
+In R mode, allows to choose any of the optimization methods used by
+base::optim. Default is L-BFGS-B. Random methods do not work with flimo.
+Bounded methods are L-BFGS-B and Brent.}
 
 \item{obj_threshold}{Float. Threshold score. If Final value of objective is
 bigger, relaunch the inference if number_tries is not reached.
@@ -159,7 +162,8 @@ about convergence results.
 \description{
 Computes several parameter inferences with R optimizer or
 Julia optimizer in a full Julia mode.
-In R mode (default) : L-BFGS-B optimization.
+In R mode (default) : L-BFGS-B optimization or other methods available for
+the base::optim function.
 In Julia mode : either IPNewton with or without Automatic Differentiation,
 Nelder-Mead or Brent optimization.
 Argument ndraw is mandatory.

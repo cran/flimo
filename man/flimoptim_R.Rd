@@ -17,6 +17,7 @@ flimoptim_R(
   Theta0 = (lower + upper)/2,
   randomTheta0 = FALSE,
   obj_threshold = Inf,
+  method = "L-BFGS-B",
   number_tries = 1,
   maxit = 1000,
   factr = 1e+07,
@@ -67,6 +68,10 @@ If True, Theta0 is randomly drawn between lower and upper bounds.}
 bigger, relaunch the inference if number_tries is not reached.
 The purpose is to avoid local minima. Default to Inf (no threshold).}
 
+\item{method}{String. Either "L-BFGS-B" (default) or any other method used by
+the base function optim. Stochastic methods do not work with flimo.
+If you want to provide bounds, you need to use L-BFGS-B or Brent.}
+
 \item{number_tries}{Integer. Number of tries (inferences) for the objective
 value to reach a point lower than obj_threshold. Default to 1.}
 
@@ -92,6 +97,5 @@ Object of class flimo_result (list) containing every information
 about convergence results.
 }
 \description{
-Computes several parameter inferences with R optimizer
-(method L-BFGS-B).
+Computes several parameter inferences with R optimizer.
 }

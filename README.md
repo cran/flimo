@@ -12,11 +12,9 @@ inference for stochastic models.
 
 The framework is simply:
 
--   For each parameter value
-    ![\theta](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Ctheta "\theta"),
-    build a function that compare a certain number of (specific)
-    simulations with data (e.g. for a scalar data,
-    (mean(simulations(![\theta](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Ctheta "\theta"))-data))^2);
+-   For each parameter value $\theta$, build a function that compare a
+    certain number of (specific) simulations with data (e.g. for a
+    scalar data, (mean(simulations($\theta$)-data))^2);
 
 -   thanks to the specific management of the randomness, it’s possible
     to use determinsitic optimization algorithm to minimize that
@@ -26,9 +24,8 @@ This R-package works on its own and also with the Julia language for
 more efficiency.
 
 More details about the inference method and the package can be found in
-the following paper. Please cite it if you use *flimo*.
-
-> Coming soon ! <https://doi.org/>…
+the following paper : <https://doi.org/10.48550/arXiv.2210.06520>.
+Please cite it if you use *flimo*.
 
 ## Requirements
 
@@ -59,33 +56,26 @@ The *flimo* algorithm allows to infer parameters of continuous
 stochastic models. It is based on simple simulations of the process,
 with a specific randomness management.
 
-The parameters of the model are grouped in a
-![\theta](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Ctheta "\theta")
-vector.
+The parameters of the model are grouped in a $\theta$ vector.
 
 The user needs to define one number and to build two functions:
 
 -   The number of random draws to be made for a single simulation,
-    called
-    ![n\_{draw}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;n_%7Bdraw%7D "n_{draw}").
-    For example, a model with 10 runs, each based on 5 binomial draws,
-    will have
-    ![n\_{draw} = 50](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;n_%7Bdraw%7D%20%3D%2050 "n_{draw} = 50").
-    An upper bound on this number is also appropriate.
+    called $n_{draw}$. For example, a model with 10 runs, each based on
+    5 binomial draws, will have $n_{draw} = 50$. An upper bound on this
+    number is also appropriate.
 
--   a special simulator of the form
-    *simulatorQ(![\theta](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Ctheta "\theta"),
-    quantiles)*. The way to build it from a usual random simulator is
-    detailed in section **Building simulatorQ with R** below;
+-   a special simulator of the form *simulatorQ($\theta$, quantiles)*.
+    The way to build it from a usual random simulator is detailed in
+    section **Building simulatorQ with R** below;
 
 -   a function of the form *dsumstats(data, simulations)* measuring the
     difference in summary statistics between the observed data and the
     simulations w.r.t. the tested parameters.
 
 These two functions can also be combined directly by the user into an
-objective function of the form:
-*objective(![\theta](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Ctheta "\theta"),
-quantiles)* to minimize.
+objective function of the form: *objective($\theta$, quantiles)* to
+minimize.
 
 The use of *flimo* is then easy:
 
@@ -172,24 +162,24 @@ Example:
 
 ``` r
 rnorm(5, mean = 0, sd = 1)
-#> [1]  0.9580883 -0.5480208 -1.4569140 -0.2402742  1.8885880
+#> [1]  0.8672414 -1.5784402 -0.2918760  0.9841565 -1.0402933
 ```
 
 becomes
 
 ``` r
 qnorm(quantiles[,1:5], mean = 0, sd = 1)
-#>             [,1]       [,2]        [,3]         [,4]       [,5]
-#>  [1,] -0.1445568 -0.2805094 -0.80588279  2.039089952 -1.5477555
-#>  [2,] -1.5422178 -1.7611784  0.05801355  0.822973238 -0.4517209
-#>  [3,]  0.4708859 -1.9003471 -0.56537835  0.872456705  1.0743202
-#>  [4,]  1.1132383  0.2197335  0.99611020  1.074424352 -0.5456380
-#>  [5,] -1.0240074 -0.1747871 -1.35122350 -0.914113241  1.1102321
-#>  [6,] -1.1946211  1.6320083  0.78535306  0.624859421  0.2370332
-#>  [7,] -1.1195320 -2.7272738  0.14852302 -0.944825575  0.5690212
-#>  [8,] -0.4388909  0.1362090 -0.26696724 -0.156150672 -1.5090528
-#>  [9,]  0.6452006  0.0163198  0.69070983 -1.038505856  0.4817592
-#> [10,]  0.6387688 -0.7962681  0.82967557  0.007502175 -0.3180369
+#>              [,1]       [,2]        [,3]       [,4]        [,5]
+#>  [1,] -0.34782224 -0.3967510 -1.30725379  0.5689414  0.16688808
+#>  [2,]  0.12917020  0.2906169 -1.50181525  0.6019140  0.23814810
+#>  [3,] -0.08018577  0.5334808  0.70101730 -0.3246339 -1.31112015
+#>  [4,]  0.99915793 -0.4276736  0.80845545 -0.7295606 -0.83459642
+#>  [5,]  2.18809576 -1.9612868  0.90043668  0.4904709 -0.15344521
+#>  [6,]  0.30922129  1.0470538 -0.13561444  0.7846481 -0.56685544
+#>  [7,]  1.52570792 -1.5697612 -0.07396329  0.7584592  0.41790599
+#>  [8,]  0.08070942 -1.8478335  1.36840144  0.1754735  0.07035972
+#>  [9,]  0.12500653 -0.7833601 -0.82447021 -0.3877886  0.14260788
+#> [10,]  1.22803757  0.1919990 -1.08012009 -1.8801307  2.56684815
 ```
 
 Each row is an independent simulation.
@@ -204,7 +194,7 @@ constant by pieces.
     for *flimo*;
 
 -   replace every discrete distribution by a continuous one, e.g. :
-    ![Poisson(\theta) \leftarrow Normal(\mu = \theta, \sigma^2 = \theta)](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;Poisson%28%5Ctheta%29%20%5Cleftarrow%20Normal%28%5Cmu%20%3D%20%5Ctheta%2C%20%5Csigma%5E2%20%3D%20%5Ctheta%29 "Poisson(\theta) \leftarrow Normal(\mu = \theta, \sigma^2 = \theta)");
+    $Poisson(\theta) \leftarrow Normal(\mu = \theta, \sigma^2 = \theta)$;
 
 -   (in project for multidimensional problems: adapted Nelder-Mead
     method.)
@@ -269,8 +259,7 @@ dsumstats1 <- function(simulations, data){
 }
 ```
 
-There are optimization issues in R for normalized process and
-![\theta](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Ctheta "\theta")
+There are optimization issues in R for normalized process and $\theta$
 close to 0. Lower bound set to 1.
 
 ``` r
@@ -284,7 +273,7 @@ system.time(optim1R <- flimoptim(ndraw1, data1, dsumstats1, simulatorQ1N,
                  lower = 1, upper = 1000,
                  randomTheta0 = TRUE))
 #> utilisateur     système      écoulé 
-#>       0.032       0.001       0.034
+#>       0.044       0.003       0.052
 
 summary(optim1R)
 #> $Mode
@@ -313,7 +302,7 @@ summary(optim1R)
 #> 1.140e-24 1.110e-22 2.989e-22 8.113e-21 6.841e-22 7.762e-20 
 #> 
 #> $median_time_inference
-#> [1] 0.001893878
+#> [1] 0.00235343
 
 #Version with objective function provided
 
@@ -329,7 +318,7 @@ system.time(optim1Rbis <- flimoptim(ndraw1,
                  lower = 1, upper = 1000,
                  randomTheta0 = TRUE))
 #> utilisateur     système      écoulé 
-#>       0.009       0.000       0.011
+#>       0.008       0.000       0.009
 
 #Second mode : full Julia
 
@@ -401,17 +390,17 @@ end
 #> [1] 10
 #> 
 #> $minimizer
-#>       par1       
-#>  Min.   : 99.06  
-#>  1st Qu.:100.69  
-#>  Median :101.61  
-#>  Mean   :101.37  
-#>  3rd Qu.:102.38  
-#>  Max.   :102.51  
+#>       par1      
+#>  Min.   : 99.4  
+#>  1st Qu.:100.5  
+#>  Median :101.5  
+#>  Mean   :101.3  
+#>  3rd Qu.:102.1  
+#>  Max.   :102.8  
 #> 
 #> $minimum
 #>      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
-#> 2.300e-19 8.400e-18 3.734e-16 2.619e-14 4.065e-14 9.542e-14
+#> 0.000e+00 3.169e-16 1.429e-14 1.211e-13 2.065e-13 4.706e-13
 ```
 
 ### Example 2: Normal distribution
@@ -488,7 +477,7 @@ summary(optim2R)
 #> 0.000e+00 0.000e+00 1.400e-20 1.395e-15 4.208e-18 1.394e-14 
 #> 
 #> $median_time_inference
-#> [1] 0.01606452
+#> [1] 0.01571453
 
 #Second mode : full Julia
 #Optimization with Automatic Differentiation
@@ -566,14 +555,14 @@ end
 #> 
 #> $minimizer
 #>       par1            par2      
-#>  Min.   :2.771   Min.   :1.545  
-#>  1st Qu.:2.984   1st Qu.:1.794  
-#>  Median :3.341   Median :1.878  
-#>  Mean   :3.264   Mean   :1.858  
-#>  3rd Qu.:3.495   3rd Qu.:1.902  
-#>  Max.   :3.647   Max.   :2.206  
+#>  Min.   :3.118   Min.   :1.917  
+#>  1st Qu.:3.243   1st Qu.:2.124  
+#>  Median :3.332   Median :2.174  
+#>  Mean   :3.381   Mean   :2.189  
+#>  3rd Qu.:3.547   3rd Qu.:2.259  
+#>  Max.   :3.640   Max.   :2.580  
 #> 
 #> $minimum
 #>      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
-#> 1.388e-10 5.570e-10 1.803e-09 4.088e-09 6.211e-09 1.506e-08
+#> 2.032e-10 1.391e-09 3.262e-09 2.677e-09 3.843e-09 4.524e-09
 ```
