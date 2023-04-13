@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{summary.flimo_result}
 \alias{summary.flimo_result}
-\title{summary.flimo_result}
+\title{Summary of flimo results}
 \usage{
 \method{summary}{flimo_result}(object, ...)
 }

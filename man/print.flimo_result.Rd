@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{print.flimo_result}
 \alias{print.flimo_result}
-\title{print.flimo_result}
+\title{Print flimo results}
 \usage{
 \method{print}{flimo_result}(x, ...)
 }

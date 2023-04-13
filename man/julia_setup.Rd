@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{julia_setup}
 \alias{julia_setup}
-\title{julia_setup}
+\title{Check Julia setup}
 \usage{
 julia_setup()
 }

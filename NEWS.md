@@ -13,3 +13,11 @@
 
 * Authorized every optimization method of base::optim in R mode.
 * Removed useless imports.
+
+# flimo 0.1.4
+
+* Fixed warning issues in R optim function.
+* Added adequate sample function in context of fixed quantiles (sampleQ).
+* Updated Documentation.
+* Improved plot_objective function.
+* included explicit JIT compilation.

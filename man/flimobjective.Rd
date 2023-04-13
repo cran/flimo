@@ -2,14 +2,14 @@
 % Please edit documentation in R/functions.R
 \name{flimobjective}
 \alias{flimobjective}
-\title{flimobjective}
+\title{Objective function minimized by flimo}
 \usage{
 flimobjective(Theta, quantiles, data, dsumstats, simulatorQ)
 }
 \arguments{
 \item{Theta}{1D array. parameters for the simulations.}
 
-\item{quantiles}{2D array containing values following U(0,1).
+\item{quantiles}{2D array containing values drawn in U(0,1).
 Row number = number of simulations.
 Column number = number of random variables to draw in one simulation.}
 

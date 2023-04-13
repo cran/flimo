@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{flimoptim}
 \alias{flimoptim}
-\title{flimoptim}
+\title{Main function to use flimo inference}
 \usage{
 flimoptim(
   ndraw,

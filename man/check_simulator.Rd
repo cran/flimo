@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{check_simulator}
 \alias{check_simulator}
-\title{check_simulator}
+\title{Check if simulator with fixed quantiles is well implemented}
 \usage{
 check_simulator(
   simulatorQ,

@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{plot.flimo_result}
 \alias{plot.flimo_result}
-\title{plot.flimo_result}
+\title{Plot main flimo results}
 \usage{
 \method{plot}{flimo_result}(
   x,

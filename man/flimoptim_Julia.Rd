@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{flimoptim_Julia}
 \alias{flimoptim_Julia}
-\title{flimoptim_Julia}
+\title{Internal flimoptim function in Julia mode}
 \usage{
 flimoptim_Julia(
   ndraw,

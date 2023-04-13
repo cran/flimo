@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{plot_objective}
 \alias{plot_objective}
-\title{plot_objective}
+\title{Plot the objective to be minimized using flimo}
 \usage{
 plot_objective(
   ndraw,
@@ -19,6 +19,7 @@ plot_objective(
   dim2 = TRUE,
   visualize_min = TRUE,
   plot_legend = TRUE,
+  npoints = 300,
   add_to_plot = NULL
 )
 }
@@ -37,11 +38,11 @@ ncol(simulations) = length(data) mandatory.}
 where Theta is the parameter set for the simulations and
 quantiles are drawn in U(0,1).}
 
-\item{obj}{objective function of type objective(Theta).
+\item{obj}{objective function of type objective(Theta, quantiles).
 Default : directly computed with "dsumstats" and "simulatorQ".}
 
-\item{quantiles}{2D array containing values following U(0,1).
-Row number = number of simulations.
+\item{quantiles}{2D array containing values drawn in U(0,1).
+Row number = number of simulations. Default: simulated within the function.
 Column number = number of random variables to draw in one simulation.}
 
 \item{index}{Integer. Index of the moving parameter.}
@@ -71,6 +72,8 @@ Computation time grows linearly with this number. Default to 10.}
 
 \item{plot_legend}{Boolean. If True (default), plots the legend.}
 
+\item{npoints}{Integer. Number of points evaluated. Default = 300.}
+
 \item{add_to_plot}{ggplot object. If not NULL,
 will add all curves/points on previous plot instead of creating a new one.
 Does not change title/labels/limits defined in previous plot.}
@@ -79,7 +82,8 @@ Does not change title/labels/limits defined in previous plot.}
 ggplot object representing the objective function to be minimized.
 }
 \description{
-Plot of objective = f(theta_index).
+Plot of the objective function with one parameter moving
+(objective = f(theta_index)).
 You need either to provide data, dsumstats AND simulatorQ
 OR obj.
 }

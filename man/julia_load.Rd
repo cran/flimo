@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{julia_load}
 \alias{julia_load}
-\title{julia_load}
+\title{Load Julia}
 \usage{
 julia_load()
 }

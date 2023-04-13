@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{flimoptim_R}
 \alias{flimoptim_R}
-\title{flimoptim_R}
+\title{Internal flimoptim function in R mode}
 \usage{
 flimoptim_R(
   ndraw,

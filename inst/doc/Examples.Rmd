@@ -28,7 +28,7 @@ theme_set(theme_bw())
 
 Flimo (Fixed Landscape Inference MethOd) is a likelihood-free inference method for stochastic models. It is based on simple simulations of the process under study with a specific management of the randomness. This makes it possible to use deterministic optimization algorithms to find the optimal parameters in the sense of summary statistics.
 
-This document presents two small examples to illustrate how the method works.
+This document presents two small examples to illustrate how the method works. You can find more details on the git page of the project: <https://metabarcoding.org/flimo>.
 
 Inference is possible in R but is more efficient in the Julia language for non-trivial models. This Julia mode uses the 'Jflimo' package available on the git page of the project: <https://metabarcoding.org/flimo>.
 
