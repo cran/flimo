@@ -98,7 +98,7 @@ In R mode, allows to choose any of the optimization methods used by
 base::optim. Default is L-BFGS-B. Random methods do not work with flimo.
 Bounded methods are L-BFGS-B and Brent.}
 
-\item{obj_threshold}{Float. Threshold score. If Final value of objective is
+\item{obj_threshold}{Float. Threshold score. If final value of objective is
 bigger, relaunch the inference if number_tries is not reached.
 The purpose is to avoid local minima. Default to Inf (no threshold).}
 

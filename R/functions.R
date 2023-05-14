@@ -193,7 +193,7 @@ flimobjective <- function(Theta, quantiles, data, dsumstats, simulatorQ){
 #' In R mode, allows to choose any of the optimization methods used by
 #' base::optim. Default is L-BFGS-B. Random methods do not work with flimo.
 #' Bounded methods are L-BFGS-B and Brent.
-#' @param obj_threshold Float. Threshold score. If Final value of objective is
+#' @param obj_threshold Float. Threshold score. If final value of objective is
 #' bigger, relaunch the inference if number_tries is not reached.
 #' The purpose is to avoid local minima. Default to Inf (no threshold).
 #' @param number_tries Integer. Number of tries (inferences) for the objective
@@ -677,7 +677,8 @@ flimoptim_Julia <- function(ndraw,
 
   if (!is.null(data)){
     file_data <- tempfile(pattern = "data_flimoptim", fileext = ".csv")
-    write.csv(as.matrix(data), file_data, row.names = FALSE)
+    write.csv(as.matrix(data), file_data,
+              row.names = FALSE)
     cmd_julia <- ""
     juliaEval(paste0('julia_data = CSV.read("',file_data,'", DataFrame)[:,1]\n',
                      'julia_data = convert(Array{Float64,1}, julia_data)'))
@@ -686,7 +687,7 @@ flimoptim_Julia <- function(ndraw,
   else{
     cmd_julia <- 'julia_data = nothing'
   }
-  cmd_julia <- cat(cmd_julia,
+  cmd_julia <- paste0(cmd_julia,
                    paste0('julia_ndraw = ',ndraw,
                    '\njulia_nsim = ',nsim,
                    '\njulia_ninfer = ',ninfer,
@@ -704,41 +705,41 @@ flimoptim_Julia <- function(ndraw,
                    '\njulia_abstol = ',abstol),
                    sep = '\n')
 
-  if (is.null(time_limit)){cmd_julia <- cat(cmd_julia, 'julia_time_limit = NaN',
+  if (is.null(time_limit)){cmd_julia <- paste0(cmd_julia, 'julia_time_limit = NaN',
                                             sep = '\n')}
-  else {cmd_julia <- cat(cmd_julia, paste0('julia_time_limit = ',time_limit),
+  else {cmd_julia <- paste0(cmd_julia, paste0('julia_time_limit = ',time_limit),
                          sep = '\n')}
 
-  if (AD){cmd_julia <- cat(cmd_julia, 'julia_AD = true', sep = '\n')}
-  else {cmd_julia <- cat(cmd_julia, 'julia_AD = false', sep = '\n')}
+  if (AD){cmd_julia <- paste0(cmd_julia, 'julia_AD = true', sep = '\n')}
+  else {cmd_julia <- paste0(cmd_julia, 'julia_AD = false', sep = '\n')}
 
-  if (randomTheta0){cmd_julia <- cat(cmd_julia, 'julia_randomTheta0 = true',
+  if (randomTheta0){cmd_julia <- paste0(cmd_julia, 'julia_randomTheta0 = true',
                                      sep = '\n')}
-  else {cmd_julia <- cat(cmd_julia, 'julia_randomTheta0 = false', sep = '\n')}
+  else {cmd_julia <- paste0(cmd_julia, 'julia_randomTheta0 = false', sep = '\n')}
 
-  if (show_trace){cmd_julia <- cat(cmd_julia, 'julia_show_trace = true',
+  if (show_trace){cmd_julia <- paste0(cmd_julia, 'julia_show_trace = true',
                                    sep = '\n')}
-  else {cmd_julia <- cat(cmd_julia, 'julia_show_trace = false', sep = '\n')}
+  else {cmd_julia <- paste0(cmd_julia, 'julia_show_trace = false', sep = '\n')}
 
-  if (store_trace){cmd_julia <- cat(cmd_julia, 'julia_store_trace = true',
+  if (store_trace){cmd_julia <- paste0(cmd_julia, 'julia_store_trace = true',
                                     sep = '\n')}
-  else {cmd_julia <- cat(cmd_julia, 'julia_store_trace = false', sep = '\n')}
+  else {cmd_julia <- paste0(cmd_julia, 'julia_store_trace = false', sep = '\n')}
 
-  if (store_quantiles){cmd_julia <- cat(cmd_julia, 'julia_store_quantiles = true',
+  if (store_quantiles){cmd_julia <- paste0(cmd_julia, 'julia_store_quantiles = true',
                                         sep = '\n')}
-  else {cmd_julia <- cat(cmd_julia, 'julia_store_quantiles = false', sep = '\n')}
+  else {cmd_julia <- paste0(cmd_julia, 'julia_store_quantiles = false', sep = '\n')}
 
   if (is.null(julia_obj)){
-    cmd_julia <- cat(cmd_julia,
+    cmd_julia <- paste0(cmd_julia,
                      paste0('julia_obj = nothing','\n', dsumstats, '\n', simulatorQ),
                      sep = '\n')
   }
   else {
-    cmd_julia <- cat(cmd_julia,
+    cmd_julia <- paste0(cmd_julia,
                      paste0('julia_obj = nothing','\n', dsumstats, '\n', simulatorQ),
                      sep = '\n')
   }
-  cmd_julia <- cat(cmd_julia,
+  cmd_julia <- paste0(cmd_julia,
                    "
   julia_xtol = convert(Float64, julia_xtol)
   julia_ftol = convert(Float64, julia_ftol)
@@ -749,7 +750,10 @@ flimoptim_Julia <- function(ndraw,
   julia_lower = convert(Array{Float64,1}, julia_lower)
   julia_upper = convert(Array{Float64,1}, julia_upper)
 
-  opt = Jflimo.flimoptim(julia_data, julia_ndraw, dsumstats, simulatorQ,
+  opt = Jflimo.flimoptim(julia_ndraw,
+                   data = julia_data,
+                   dsumstats = dsumstats,
+                   simulatorQ = simulatorQ,
                    obj = julia_obj,
                    nsim = julia_nsim,
                    ninfer = julia_ninfer,

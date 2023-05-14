@@ -21,3 +21,8 @@
 * Updated Documentation.
 * Improved plot_objective function.
 * included explicit JIT compilation.
+
+# flimo 0.1.5
+
+* Fixed bugs in Julia mode.
+

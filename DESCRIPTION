@@ -1,7 +1,7 @@
 Package: flimo
 Type: Package
 Title: Fixed Landscape Inference Method
-Version: 0.1.4
+Version: 0.1.5
 Authors@R: person("Sylvain", "Moinard", email = "sylvain.moinard@univ-grenoble-alpes.fr", role = c("aut", "cre"))
 Description: Likelihood-free inference method for stochastic models.
     Uses a deterministic optimizer on simple simulations of the model
@@ -15,8 +15,8 @@ RoxygenNote: 7.2.1
 VignetteBuilder: knitr
 Suggests: knitr, rmarkdown
 NeedsCompilation: no
-Packaged: 2023-04-13 07:33:59 UTC; sylvainmoi
+Packaged: 2023-05-14 22:33:51 UTC; sylvainmoi
 Author: Sylvain Moinard [aut, cre]
 Maintainer: Sylvain Moinard <sylvain.moinard@univ-grenoble-alpes.fr>
 Repository: CRAN
-Date/Publication: 2023-04-13 07:50:02 UTC
+Date/Publication: 2023-05-14 23:00:02 UTC
